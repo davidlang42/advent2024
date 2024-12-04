@@ -104,17 +104,7 @@ impl Grid {
 
     fn find_in_vec(s: &[char; 4], v: &Vec<char>) -> usize {
         if v.len() < 4 {
-            println!("Line: {:?}, Count: {}", v, 0);
             return 0;
-        }
-        if v.len() == 4 {
-            if v == s {
-                println!("Line: {:?}, Count: {}", v, 1);
-                return 1;
-            } else {
-                println!("Line: {:?}, Count: {}", v, 0);
-                return 0;
-            }
         }
         let mut count = 0;
         for i in 0..(v.len() - 4 + 1) {
@@ -122,7 +112,26 @@ impl Grid {
                 count += 1;
             }
         }
-        println!("Line: {:?}, Count: {}", v, count);
+        count
+    }
+
+    pub fn find_x(&self) -> usize {
+        Self::find_x_vec(&self.lines)
+    }
+
+    fn find_x_vec(v: &Vec<Vec<char>>) -> usize {
+        let mut count = 0;
+        for y in 0..(v.len() - 2) {
+            for x in 0..(v[0].len() -2) {
+                if (v[y][x] == 'M' && v[y + 1][x + 1] == 'A' && v[y + 2][x] == 'M' && v[y][x + 2] == 'S' && v[y + 2][x + 2] == 'S')
+                    || (v[y][x] == 'M' && v[y + 1][x + 1] == 'A' && v[y + 2][x] == 'S' && v[y][x + 2] == 'M' && v[y + 2][x + 2] == 'S')
+                    || (v[y][x] == 'S' && v[y + 1][x + 1] == 'A' && v[y + 2][x] == 'M' && v[y][x + 2] == 'S' && v[y + 2][x + 2] == 'M')
+                    || (v[y][x] == 'S' && v[y + 1][x + 1] == 'A' && v[y + 2][x] == 'S' && v[y][x + 2] == 'M' && v[y + 2][x + 2] == 'M')
+                {
+                    count += 1;
+                }
+            }
+        }
         count
     }
 }
@@ -136,6 +145,7 @@ fn main() {
         let grid: Grid = text.parse().unwrap();
         let search: [char; 4] = ['X','M','A','S'];
         println!("Count: {}", grid.find(&search));
+        println!("X-Count: {}", grid.find_x());
     } else {
         println!("Please provide 1 argument: Filename");
     }
