@@ -117,7 +117,7 @@ impl Grid {
             }
         }
         let mut count = 0;
-        for i in 0..(v.len() - 4) {
+        for i in 0..(v.len() - 4 + 1) {
             if &v[i..(i+4)] == s {
                 count += 1;
             }
