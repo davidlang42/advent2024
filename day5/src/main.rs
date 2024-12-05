@@ -1,17 +1,20 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
+use std::collections::HashSet;
 
 struct Set {
     orders: Vec<PageOrder>,
     updates: Vec<Update>
 }
 
+#[derive(Debug, Copy, Clone)]
 struct PageOrder {
     first: usize,
     second: usize
 }
 
+#[derive(Debug)]
 struct Update(Vec<usize>);
 
 impl FromStr for Set {
@@ -74,6 +77,31 @@ impl Update {
         let middle: usize = self.0.len() / 2;
         self.0[middle]
     }
+
+    pub fn fix(&self, orders: &Vec<PageOrder>) -> Self {
+        let mut remaining = HashSet::new();
+        for n in &self.0 {
+            remaining.insert(n);
+        }
+        let mut orders_that_matter: Vec<PageOrder> = Vec::new();
+        for o in orders {
+            if remaining.get(&o.first).is_some() && remaining.get(&o.second).is_some() { // otherwise it doesn't matter
+                orders_that_matter.push(*o);
+            }
+        }
+        let mut new_update = Vec::new();
+        for next in &self.0 {
+            let must_be_before_values: Vec<usize> = orders_that_matter.iter().filter(|o| o.first == *next).map(|o| o.second).collect();
+            let must_be_before_indices = must_be_before_values.iter().map(|v| new_update.iter().position(|p| p == v)).filter(|i| i.is_some()).map(|i| i.unwrap());
+            if let Some(can_go_at_index) = must_be_before_indices.min() {
+                new_update.insert(can_go_at_index, *next);
+            } else {
+                new_update.push(*next);
+            }
+            
+        }
+        Self(new_update)
+    }
 }
 
 fn main() {
@@ -83,13 +111,17 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let set: Set = text.parse().unwrap();
-        let mut sum = 0;
+        let mut correct_sum = 0;
+        let mut fixed_sum = 0;
         for u in set.updates {
             if u.all_valid(&set.orders) {
-                sum += u.middle_number();
+                correct_sum += u.middle_number();
+            } else {
+                fixed_sum += u.fix(&set.orders).middle_number();
             }
         }
-        println!("Sum: {}", sum);
+        println!("Correct sum: {}", correct_sum);
+        println!("Fixed sum: {}", fixed_sum);
     } else {
         println!("Please provide 1 argument: Filename");
     }
