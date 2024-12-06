@@ -110,11 +110,12 @@ impl Map {
             if self.obstacles[in_front.row][in_front.col] {
                 // obstactle in front
                 self.facing = self.facing.rotate();
+                self.move_guard()
             } else {
                 // empty in front
                 self.guard = in_front;
+                true
             }
-            true
         } else {
             // left the area
             false
