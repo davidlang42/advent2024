@@ -3,6 +3,7 @@ use std::env;
 use std::str::FromStr;
 use std::collections::HashSet;
 
+#[derive(Clone)]
 struct Map {
     obstacles: Vec<Vec<bool>>,
     max: Pos,
@@ -16,12 +17,16 @@ struct Pos {
     col: usize
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
 enum Direction {
     Up,
     Right,
     Down,
     Left
 }
+
+#[derive(Hash, Eq, PartialEq, Clone)]
+struct State(Pos, Direction);
 
 impl FromStr for Map {
     type Err = String;
@@ -121,6 +126,18 @@ impl Map {
             false
         }
     }
+
+    pub fn ends_in_loop(&mut self) -> bool {
+        let mut states = HashSet::new();
+        states.insert(State(self.guard.clone(), self.facing.clone()));
+        while self.move_guard() {
+            if !states.insert(State(self.guard.clone(), self.facing.clone())) {
+                // we were already in this state, therefore loop
+                return true;
+            }
+        }
+        false
+    }
 }
 
 fn main() {
@@ -129,13 +146,24 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let mut map: Map = text.parse().unwrap();
+        let original: Map = text.parse().unwrap();
+        let mut map = original.clone();
         let mut positions = HashSet::new();
         positions.insert(map.guard.clone());
         while map.move_guard() {
             positions.insert(map.guard.clone());
         }
         println!("Discreet positions: {}", positions.len());
+        positions.remove(&original.guard);
+        let mut positions_causing_loop = 0;
+        for p in positions.iter() {
+            let mut cloned = original.clone();
+            cloned.obstacles[p.row][p.col] = true;
+            if cloned.ends_in_loop() {
+                positions_causing_loop += 1;
+            }
+        }
+        println!("Looping positions: {}", positions_causing_loop);
     } else {
         println!("Please provide 1 argument: Filename");
     }
