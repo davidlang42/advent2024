@@ -28,7 +28,8 @@ impl FromStr for Equation {
 #[derive(Clone)]
 enum Operation {
     Plus,
-    Multiply
+    Multiply,
+    Concat
 }
 
 impl Equation {
@@ -53,13 +54,27 @@ impl Equation {
                 return Some(solution);
             }
             // try multiply
-            let mut operations_with_multiply = operations;
+            let mut operations_with_multiply = operations.clone();
             operations_with_multiply.push(Operation::Multiply);
             if let Some(solution) = self.solve(so_far * next_number, operations_with_multiply) {
                 return Some(solution);
             }
+            // try concat
+            let mut operations_with_concat = operations;
+            operations_with_concat.push(Operation::Concat);
+            if let Some(solution) = self.solve(Self::concat(so_far, next_number), operations_with_concat) {
+                return Some(solution);
+            }
             None
         }
+    }
+
+    fn concat(a: usize, b: usize) -> usize {
+        let a_s: String = a.to_string();
+        let b_s: String = b.to_string();
+        let ab_s: String = a_s + &b_s;
+        let ab: usize = ab_s.parse().unwrap();
+        ab
     }
 }
 
