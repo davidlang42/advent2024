@@ -13,6 +13,7 @@ struct Disk {
     blocks: Vec<Option<Block>>
 }
 
+#[derive(Eq, PartialEq)]
 struct Block {
     id: usize
 }
@@ -83,7 +84,7 @@ impl Disk {
         }
     }
 
-    fn compact(&mut self) {
+    fn compact_by_block(&mut self) {
         let mut move_from = self.blocks.len() - 1;
         let mut move_to = 0;
         while move_from > move_to {
@@ -98,6 +99,68 @@ impl Disk {
             self.blocks.swap(move_from, move_to);
             move_to += 1;
             move_from -= 1;
+        }
+    }
+
+    fn max_block_id(&self) -> usize {
+        if self.blocks.len() == 0 {
+            panic!("Empty disk");
+        }
+        let mut max = 0;
+        for b in &self.blocks {
+            if let Some(block) = b {
+                if block.id > max {
+                    max = block.id;
+                }
+            }
+        }
+        max
+    }
+
+    fn find_file(&self, id: usize) -> (usize, usize) {
+        let mut start = None;
+        for (i, b) in self.blocks.iter().enumerate() {
+            if let Some(s) = start {
+                if *b != Some(Block { id }) {
+                    return (s, i - s);
+                }
+            } else if *b == Some(Block { id }) {
+                start = Some(i);
+            }
+        }
+        if let Some(s) = start {
+            return (s, self.blocks.len() - s);
+        }
+        panic!("Block id not found")
+    }
+
+    fn has_space(&self, start: usize, length: usize) -> bool {
+        for i in start..(start+length) {
+            if self.blocks[i].is_some() {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn swap_blocks(&mut self, mut a: usize, mut b: usize, length: usize) {
+        for _i in 0..length {
+            self.blocks.swap(a, b);
+            a += 1;
+            b += 1;
+        }
+    }
+
+    fn compact_by_file(&mut self) {
+        let max = self.max_block_id();
+        for block_id in (0..(max+1)).rev() {
+            let (start, length) = self.find_file(block_id);
+            for move_to in 0..start {
+                if self.has_space(move_to, length) {
+                    self.swap_blocks(move_to, start, length);
+                    break;
+                }
+            }
         }
     }
 
@@ -121,9 +184,13 @@ fn main() {
         let map: DiskMap = text.parse().unwrap();
         let mut disk = map.to_disk();
         println!("Original: {}", disk);
-        disk.compact();
+        disk.compact_by_block();
         println!("Compact: {}", disk);
         println!("Checksum: {}", disk.checksum());
+        disk = map.to_disk(); //fresh copy
+        disk.compact_by_file();
+        println!("Compact by file: {}", disk);
+        println!("Checksum by file: {}", disk.checksum());
     } else {
         println!("Please provide 1 argument: Filename");
     }
