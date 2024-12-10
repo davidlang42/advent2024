@@ -35,14 +35,15 @@ impl FromStr for Map {
 }
 
 impl Map {
-    fn trail_heads(&self) -> Vec<(Pos, usize)> {
+    fn trail_heads(&self) -> Vec<(Pos, usize, usize)> {
         let mut v = Vec::new();
         for row in 0..self.heights.len() {
             for col in 0..self.heights[0].len() {
                 if self.heights[row][col] == 0 {
                     let pos = Pos { row, col };
                     let trail_ends = self.trail_ends(pos, 0, 9);
-                    v.push((pos, trail_ends.len()));
+                    let trails = self.trails(pos, 0, 9);
+                    v.push((pos, trail_ends.len(), trails));
                 }
             }
         }
@@ -63,6 +64,20 @@ impl Map {
             }
         }
         ends
+    }
+
+    fn trails(&self, at: Pos, from: usize, to: usize) -> usize {
+        if from == to {
+            1
+        } else {
+            let mut count = 0;
+            for adj in self.adjacent_pos(at) {
+                if self.heights[adj.row][adj.col] == from + 1 {
+                    count += self.trails(adj, from + 1, to);
+                }
+            }
+            count
+        }
     }
 
     fn adjacent_pos(&self, pos: Pos) -> Vec<Pos> {
@@ -103,11 +118,14 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let map: Map = text.parse().unwrap();
         let mut sum = 0;
-        for (trail_head, score) in map.trail_heads() {
-            println!("Trailhead at ({},{}) with score {}", trail_head.row, trail_head.col, score);
+        let mut ratings = 0;
+        for (trail_head, score, rating) in map.trail_heads() {
+            println!("Trailhead at ({},{}) with score {}, rating {}", trail_head.row, trail_head.col, score, rating);
             sum += score;
+            ratings += rating;
         }
         println!("Total score: {}", sum);
+        println!("Total rating: {}", ratings);
     } else {
         println!("Please provide 1 argument: Filename");
     }
