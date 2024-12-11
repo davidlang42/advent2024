@@ -52,10 +52,10 @@ fn main() {
             stones.blink();
         }
         println!("Count after 25: {}", stones.stones.len());
-        for _i in 0..50 {
+        for i in 0..50 {
             stones.blink();
+            println!("Count after {}: {}", i + 26, stones.stones.len());
         }
-        println!("Count after 75: {}", stones.stones.len());
     } else {
         println!("Please provide 1 argument: Filename");
     }
