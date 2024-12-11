@@ -19,44 +19,47 @@ impl FromStr for Stones {
 }
 
 impl Stones {
-    fn blink(&mut self) {
-        let mut i = 0;
-        while i < self.stones.len() {
-            if self.stones[i] == 0 {
-                self.stones[i] = 1;
-                i += 1;
-                continue;
+    fn blink(&self, blinks: usize) -> usize {
+        let mut count = 0;
+        for stone in &self.stones {
+            count += Self::make_stones(*stone, blinks).len();
+        }
+        count
+    }
+
+    fn make_stones(stone: usize, blinks: usize) -> Vec<usize> {
+        if blinks == 0 {
+            // finished
+            vec![stone]
+        } else {
+            // do a blink
+            if stone == 0 {
+                return Self::make_stones(1, blinks - 1);
             }
-            let stone_str = self.stones[i].to_string();
+            let stone_str = stone.to_string();
             if stone_str.len() % 2 == 0 {
                 let middle = stone_str.len() / 2;
-                self.stones[i] = stone_str[0..middle].parse().unwrap();
-                self.stones.insert(i + 1, stone_str[middle..stone_str.len()].parse().unwrap());
-                i += 2;
-                continue;
+                let left_stone = stone_str[0..middle].parse().unwrap();
+                let right_stone = stone_str[middle..stone_str.len()].parse().unwrap();
+                let mut result = Self::make_stones(left_stone, blinks - 1);
+                result.append(&mut Self::make_stones(right_stone, blinks - 1));
+                return result;
             }
-            self.stones[i] *= 2024;
-            i += 1;
+            Self::make_stones(stone * 2024, blinks - 1)
         }
     }
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() == 2 {
+    if args.len() == 3 {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let mut stones: Stones = text.parse().unwrap();
-        for _i in 0..25 {
-            stones.blink();
-        }
-        println!("Count after 25: {}", stones.stones.len());
-        for i in 0..50 {
-            stones.blink();
-            println!("Count after {}: {}", i + 26, stones.stones.len());
-        }
+        let blinks = args[2].parse().unwrap();
+        let stones: Stones = text.parse().unwrap();
+        println!("Count after {} blinks: {}", blinks, stones.blink(blinks));
     } else {
-        println!("Please provide 1 argument: Filename");
+        println!("Please provide 2 arguments: Filename, Blinks");
     }
 }
