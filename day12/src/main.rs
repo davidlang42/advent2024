@@ -17,6 +17,12 @@ struct Pos {
     col: usize
 }
 
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+struct OutOfMapPos {
+    row: isize,
+    col: isize
+}
+
 struct Region {
     plant: Plant,
     locations: HashSet<Pos>
@@ -93,34 +99,21 @@ impl Region {
         self.locations.len()
     }
 
-    fn outer_perimeter(&self) -> usize {
-        let min_row = self.locations.iter().map(|l| l.row).min().unwrap();
-        let max_row = self.locations.iter().map(|l| l.row).max().unwrap();
-        let min_col = self.locations.iter().map(|l| l.col).min().unwrap();
-        let max_col = self.locations.iter().map(|l| l.col).max().unwrap();
-        (max_row - min_row + 1 + max_col - min_col + 1) * 2
-    }
-
-    fn perimeter(&self, all_other_regions: Vec<&Region>, map: &Map) -> usize {
-        let regions_fully_enclosed = all_other_regions.iter().filter(|r| self.fully_contains(r, map));
-        self.outer_perimeter() + regions_fully_enclosed.map(|r| r.outer_perimeter()).sum::<usize>()
-    }
-
-    fn locations_around(&self, map: &Map) -> HashSet<Pos> {
-        let mut around = HashSet::new();
+    fn perimeter(&self, map: &Map) -> usize {
+        let mut perimeter = 0;
         for l in &self.locations {
-            for a in l.adjacent(&map.max) {
-                if !self.locations.contains(&a) {
-                    around.insert(a);
+            let l_out_of_map = l.out_of_map();
+            for a in l_out_of_map.adjacent_including_out_of_map() {
+                if let Some(a_in_map) = a.in_map(map) {
+                    if !self.locations.contains(&a_in_map) {
+                        perimeter += 1;
+                    }
+                } else {
+                    perimeter += 1;
                 }
             }
         }
-        around
-    }
-
-    fn fully_contains(&self, other: &Self, map: &Map) -> bool {
-        let locations_around_other = other.locations_around(map);
-        locations_around_other.iter().all(|l| self.locations.contains(l))
+        perimeter
     }
 }
 
@@ -136,32 +129,73 @@ impl Plant {
 }
 
 impl Pos {
+    fn out_of_map(&self) -> OutOfMapPos {
+        OutOfMapPos {
+            row: self.row as isize,
+            col: self.col as isize
+        }
+    }
+
     fn adjacent(&self, max: &Pos) -> Vec<Pos> {
         let mut v = Vec::new();
         if self.row > 0 {
-            v.push(Pos {
+            v.push(Self {
                 row: self.row - 1,
                 col: self.col
             });
         }
         if self.col > 0 {
-            v.push(Pos {
+            v.push(Self {
                 row: self.row,
                 col: self.col - 1
             });
         }
         if self.row < max.row {
-            v.push(Pos {
+            v.push(Self {
                 row: self.row + 1,
                 col: self.col
             });
         }
         if self.col < max.col {
-            v.push(Pos {
+            v.push(Self {
                 row: self.row,
                 col: self.col + 1
             });
         }
+        v
+    }
+}
+
+impl OutOfMapPos {
+    fn in_map(&self, map: &Map) -> Option<Pos> {
+        if self.row >= 0 && self.col >= 0 && self.row <= map.max.row as isize && self.col <= map.max.col as isize {
+            Some(Pos {
+                row: self.row as usize,
+                col: self.col as usize
+            })
+        } else {
+            None
+        }
+    }
+
+    fn adjacent_including_out_of_map(&self) -> Vec<Self> {
+        let mut v = Vec::new();
+        v.push(Self {
+            row: self.row - 1,
+            col: self.col
+        });
+        v.push(Self {
+            row: self.row,
+            col: self.col - 1
+        });
+        v.push(Self {
+            row: self.row + 1,
+            col: self.col
+        });
+        v.push(Self {
+            row: self.row,
+            col: self.col + 1
+        });
         v
     }
 }
@@ -175,12 +209,9 @@ fn main() {
         let map: Map = text.parse().unwrap();
         let regions = map.regions();
         let mut sum = 0;
-        for i in 0..regions.len() {
-            let r = &regions[i];
-            let mut other: Vec<&Region> = regions[0..i].iter().collect();
-            other.append(&mut regions[i..regions.len()].iter().collect());
+        for r in regions {
             let area = r.area();
-            let perimeter = r.perimeter(other, &map);
+            let perimeter = r.perimeter(&map);
             println!("Region '{}' with area {}, perimeter {}", r.plant.0, area, perimeter);
             sum += area * perimeter;
         }
