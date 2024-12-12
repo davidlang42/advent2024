@@ -108,6 +108,10 @@ impl Region {
         }
         perimeter
     }
+
+    fn sides(&self) -> usize {
+        todo!()
+    }
 }
 
 impl Plant {
@@ -152,14 +156,18 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let map: Map = text.parse().unwrap();
         let regions = map.regions();
-        let mut sum = 0;
+        let mut part1 = 0;
+        let mut part2 = 0;
         for r in regions {
             let area = r.area();
             let perimeter = r.perimeter();
-            println!("Region '{}' with area {}, perimeter {}", r.plant.0, area, perimeter);
-            sum += area * perimeter;
+            let sides = r.sides();
+            println!("Region '{}' with area {}, perimeter {}, sides {}", r.plant.0, area, perimeter, sides);
+            part1 += area * perimeter;
+            part2 += area * sides;
         }
-        println!("Total price: {}", sum);
+        println!("Part1 price by perimeter: {}", part1);
+        println!("Part2 price by sides: {}", part2);
     } else {
         println!("Please provide 1 argument: Filename");
     }
