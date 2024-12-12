@@ -109,9 +109,79 @@ impl Region {
         perimeter
     }
 
-    fn sides(&self) -> usize {
-        todo!()
+    fn edges(&self) -> HashSet<Pos> {
+        let mut edges = HashSet::new();
+        for l in &self.locations {
+            if l.adjacent().iter().any(|a| !self.locations.contains(&a)) {
+                edges.insert(*l);
+            }
+        }
+        edges
     }
+
+    fn corners(&self) -> usize {
+        let mut corners = 0;
+        for l in &self.locations {
+            for triple in self.side_triples(l) {
+                corners += match triple {
+                    (true, true, true) => 0,
+                    (false, false, false) => 0,
+                    (true, false, true) => 2,
+                    (false, true, false) => 2,
+                    (true, false, false) => 1,
+                    (true, true, false) => 1,
+                    (false, true, true) => 1,
+                    (false, false, true) => 1
+                };
+            }
+        }
+        corners / 2 // because every corner would have been counted twice
+    }
+
+    fn side_triples(&self, p: &Pos) -> [(bool, bool, bool); 4] {
+        [
+            (self.locations.contains(&p.delta(-1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(-1, 1))),
+            (self.locations.contains(&p.delta(-1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, -1))),
+            (self.locations.contains(&p.delta(1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, 1))),
+            (self.locations.contains(&p.delta(-1, 1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, 1))),
+        ]
+    }
+
+    // fn sides(&self) -> usize {
+    //     let mut edges = self.edges();
+    //     let mut ordered = Vec::new();
+    //     let mut corners = 0;
+    //     while edges.len() != 0 {
+            
+            
+
+    //         // take any point out of the set
+    //         let start_of_loop: Pos = *edges.iter().next().unwrap();
+    //         edges.remove(&start_of_loop);
+    //         ordered.push(start_of_loop);
+
+    //         let start_of_side = start_of_loop;
+    //         // find either of the 2 points adjacent to it
+    //         let mut next = start_of_loop.adjacent().filter(|a| edges.contains(&a)).next().unwrap();
+    //         // measure the delta (ie. direction of travel)
+    //         let delta = Pos {
+    //             row: next.row - start.row,
+    //             col: next.col - start.col
+    //         };
+    //         // continue in that direction until the next point isn't in the set
+    //         while edges.remove(&next) {
+    //             ordered.push(next);
+    //             next = Pos {
+    //                 row: next.row + delta.row,
+    //                 col: next.col + delta.col
+    //             };
+    //         }
+    //         // the last edge point we removed is a corner, start a new side from here
+    //         corners += 1;
+    //         start = ordered.iter().last().unwrap();
+    //     }
+    //     sides
+    // }
 }
 
 impl Plant {
@@ -126,25 +196,15 @@ impl Plant {
 }
 
 impl Pos {
+    fn delta(&self, delta_row: isize, delta_col: isize) -> Self {
+        Self {
+            row: self.row + delta_row,
+            col: self.col + delta_col
+        }
+    }
+
     fn adjacent(&self) -> [Pos; 4] {
-        [
-            Self {
-                row: self.row - 1,
-                col: self.col
-            },
-            Self {
-                row: self.row,
-                col: self.col - 1
-            },
-            Self {
-                row: self.row + 1,
-                col: self.col
-            },
-            Self {
-                row: self.row,
-                col: self.col + 1
-            }
-        ]
+        [self.delta(-1, 0), self.delta(0, -1), self.delta(1, 0), self.delta(0, 1)]
     }
 }
 
@@ -161,7 +221,7 @@ fn main() {
         for r in regions {
             let area = r.area();
             let perimeter = r.perimeter();
-            let sides = r.sides();
+            let sides = r.corners();
             println!("Region '{}' with area {}, perimeter {}, sides {}", r.plant.0, area, perimeter, sides);
             part1 += area * perimeter;
             part2 += area * sides;
