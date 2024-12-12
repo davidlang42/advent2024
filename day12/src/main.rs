@@ -109,79 +109,57 @@ impl Region {
         perimeter
     }
 
-    fn edges(&self) -> HashSet<Pos> {
-        let mut edges = HashSet::new();
-        for l in &self.locations {
-            if l.adjacent().iter().any(|a| !self.locations.contains(&a)) {
-                edges.insert(*l);
-            }
-        }
-        edges
-    }
+    // fn edges(&self) -> HashSet<Pos> {
+    //     let mut edges = HashSet::new();
+    //     for l in &self.locations {
+    //         if l.adjacent().iter().any(|a| !self.locations.contains(&a)) {
+    //             edges.insert(*l);
+    //         }
+    //     }
+    //     edges
+    // }
 
     fn corners(&self) -> usize {
-        let mut corners = 0;
+        let mut corner_thirds = 0;
         for l in &self.locations {
-            for triple in self.side_triples(l) {
-                corners += match triple {
-                    (true, true, true) => 0,
-                    (false, false, false) => 0,
-                    (true, false, true) => 2,
-                    (false, true, false) => 2,
-                    (true, false, false) => 1,
-                    (true, true, false) => 1,
-                    (false, true, true) => 1,
-                    (false, false, true) => 1
-                };
+            for count in self.count_corner_adjacent_locations(l) {
+                if count == 0 {
+                    // obtuse corner, this is the only time it will get counted, so it counts for 3
+                    corner_thirds += 3;
+                } else if count == 2 {
+                    // acute corner, this will get counted 3 times, so it counts for 1
+                    corner_thirds += 1;
+                }
+                // count == 1 or 3 means its not a corner
             }
         }
-        corners / 2 // because every corner would have been counted twice
+        corner_thirds / 3 // because each corner is counted 3 times
     }
 
-    fn side_triples(&self, p: &Pos) -> [(bool, bool, bool); 4] {
-        [
-            (self.locations.contains(&p.delta(-1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(-1, 1))),
-            (self.locations.contains(&p.delta(-1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, -1))),
-            (self.locations.contains(&p.delta(1, -1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, 1))),
-            (self.locations.contains(&p.delta(-1, 1)), self.locations.contains(&p), self.locations.contains(&p.delta(1, 1))),
-        ]
+    fn count_corner_adjacent_locations(&self, p: &Pos) -> [usize; 4] {
+        // for each of the 4 corners of p, count how many (0-3) locations are adjacent other than p
+        // 1 2 3
+        // 4 p 6
+        // 7 8 9
+        // ie. [locations.contains(4,1,2), locations.contains(2,3,6), ..(6,9,8), ..(8,7,4)]
+        let mut counts = [0; 4];
+        let mut c = 0;
+        for delta_row in [-1, 1] {
+            for delta_col in [-1, 1] {
+                if self.locations.contains(&p.delta(delta_row, 0)) {
+                    counts[c] += 1;
+                }
+                if self.locations.contains(&p.delta(delta_row, delta_col)) {
+                    counts[c] += 1;
+                }
+                if self.locations.contains(&p.delta(0, delta_col)) {
+                    counts[c] += 1;
+                }
+                c += 1;
+            }
+        }
+        counts
     }
-
-    // fn sides(&self) -> usize {
-    //     let mut edges = self.edges();
-    //     let mut ordered = Vec::new();
-    //     let mut corners = 0;
-    //     while edges.len() != 0 {
-            
-            
-
-    //         // take any point out of the set
-    //         let start_of_loop: Pos = *edges.iter().next().unwrap();
-    //         edges.remove(&start_of_loop);
-    //         ordered.push(start_of_loop);
-
-    //         let start_of_side = start_of_loop;
-    //         // find either of the 2 points adjacent to it
-    //         let mut next = start_of_loop.adjacent().filter(|a| edges.contains(&a)).next().unwrap();
-    //         // measure the delta (ie. direction of travel)
-    //         let delta = Pos {
-    //             row: next.row - start.row,
-    //             col: next.col - start.col
-    //         };
-    //         // continue in that direction until the next point isn't in the set
-    //         while edges.remove(&next) {
-    //             ordered.push(next);
-    //             next = Pos {
-    //                 row: next.row + delta.row,
-    //                 col: next.col + delta.col
-    //             };
-    //         }
-    //         // the last edge point we removed is a corner, start a new side from here
-    //         corners += 1;
-    //         start = ordered.iter().last().unwrap();
-    //     }
-    //     sides
-    // }
 }
 
 impl Plant {
