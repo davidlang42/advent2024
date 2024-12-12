@@ -122,38 +122,42 @@ impl Region {
     fn corners(&self) -> usize {
         let mut corner_thirds = 0;
         for l in &self.locations {
-            for count in self.count_corner_adjacent_locations(l) {
+            for (count, diagonal) in self.count_corner_adjacent_locations(l) {
                 if count == 0 {
-                    // obtuse corner, this is the only time it will get counted, so it counts for 3
+                    // obtuse corner, this is the only time it will get counted, so it counts for 3 thirds
+                    corner_thirds += 3;
+                } else if count == 1 && diagonal {
+                    // diagonal corner, this is the only time it will get counted, so it counts for 3 thirds
                     corner_thirds += 3;
                 } else if count == 2 {
-                    // acute corner, this will get counted 3 times, so it counts for 1
+                    // acute corner, this will get counted 3 times, so it counts for 1 third
                     corner_thirds += 1;
                 }
-                // count == 1 or 3 means its not a corner
+                // count == 3 or count == 1(non-diagonal) means its not a corner
             }
         }
-        corner_thirds / 3 // because each corner is counted 3 times
+        corner_thirds / 3 // because some corners are counted 3 times, we count them in thirds
     }
 
-    fn count_corner_adjacent_locations(&self, p: &Pos) -> [usize; 4] {
-        // for each of the 4 corners of p, count how many (0-3) locations are adjacent other than p
+    fn count_corner_adjacent_locations(&self, p: &Pos) -> [(usize, bool); 4] {
+        // for each of the 4 corners of p, count how many (0-3) locations are adjacent other than p, and return if the diagonal is one of them
         // 1 2 3
         // 4 p 6
         // 7 8 9
         // ie. [locations.contains(4,1,2), locations.contains(2,3,6), ..(6,9,8), ..(8,7,4)]
-        let mut counts = [0; 4];
+        let mut counts = [(0, false); 4];
         let mut c = 0;
         for delta_row in [-1, 1] {
             for delta_col in [-1, 1] {
                 if self.locations.contains(&p.delta(delta_row, 0)) {
-                    counts[c] += 1;
+                    counts[c].0 += 1;
                 }
                 if self.locations.contains(&p.delta(delta_row, delta_col)) {
-                    counts[c] += 1;
+                    counts[c].0 += 1;
+                    counts[c].1 = true;
                 }
                 if self.locations.contains(&p.delta(0, delta_col)) {
-                    counts[c] += 1;
+                    counts[c].0 += 1;
                 }
                 c += 1;
             }
