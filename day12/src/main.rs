@@ -94,8 +94,11 @@ impl Region {
     }
 
     fn perimeter(&self) -> usize {
-        //TODO
-        42
+        let min_row = self.locations.iter().map(|l| l.row).min().unwrap();
+        let max_row = self.locations.iter().map(|l| l.row).max().unwrap();
+        let min_col = self.locations.iter().map(|l| l.col).min().unwrap();
+        let max_col = self.locations.iter().map(|l| l.col).max().unwrap();
+        (max_row - min_row + 1 + max_col - min_col + 1) * 2
     }
 }
 
