@@ -93,12 +93,29 @@ impl Region {
         self.locations.len()
     }
 
-    fn perimeter(&self) -> usize {
+    fn outer_perimeter(&self) -> usize {
         let min_row = self.locations.iter().map(|l| l.row).min().unwrap();
         let max_row = self.locations.iter().map(|l| l.row).max().unwrap();
         let min_col = self.locations.iter().map(|l| l.col).min().unwrap();
         let max_col = self.locations.iter().map(|l| l.col).max().unwrap();
         (max_row - min_row + 1 + max_col - min_col + 1) * 2
+    }
+
+    fn perimeter(&self, all_other_regions: Vec<&Region>, map: &Map) -> usize {
+        let regions_fully_enclosed = all_other_regions.iter().filter(|r| self.fully_contains(r, map));
+        self.outer_perimeter() + regions_fully_enclosed.map(|r| r.outer_perimeter()).sum::<usize>()
+    }
+
+    fn fully_contains(&self, other: &Self, map: &Map) -> bool {
+        let mut locations_around_other = HashSet::new();
+        for l in &other.locations {
+            for a in l.adjacent(&map.max) {
+                if !other.locations.contains(&a) {
+                    locations_around_other.insert(a);
+                }
+            }
+        }
+        locations_around_other.iter().all(|l| self.locations.contains(l))
     }
 }
 
@@ -153,9 +170,12 @@ fn main() {
         let map: Map = text.parse().unwrap();
         let regions = map.regions();
         let mut sum = 0;
-        for r in regions {
+        for i in 0..regions.len() {
+            let r = &regions[i];
+            let mut other: Vec<&Region> = regions[0..i].iter().collect();
+            other.append(&mut regions[i..regions.len()].iter().collect());
             let area = r.area();
-            let perimeter = r.perimeter();
+            let perimeter = r.perimeter(other, &map);
             println!("Region '{}' with area {}, perimeter {}", r.plant.0, area, perimeter);
             sum += area * perimeter;
         }
