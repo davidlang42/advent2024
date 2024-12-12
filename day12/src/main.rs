@@ -106,15 +106,20 @@ impl Region {
         self.outer_perimeter() + regions_fully_enclosed.map(|r| r.outer_perimeter()).sum::<usize>()
     }
 
-    fn fully_contains(&self, other: &Self, map: &Map) -> bool {
-        let mut locations_around_other = HashSet::new();
-        for l in &other.locations {
+    fn locations_around(&self, map: &Map) -> HashSet<Pos> {
+        let mut around = HashSet::new();
+        for l in &self.locations {
             for a in l.adjacent(&map.max) {
-                if !other.locations.contains(&a) {
-                    locations_around_other.insert(a);
+                if !self.locations.contains(&a) {
+                    around.insert(a);
                 }
             }
         }
+        around
+    }
+
+    fn fully_contains(&self, other: &Self, map: &Map) -> bool {
+        let locations_around_other = other.locations_around(map);
         locations_around_other.iter().all(|l| self.locations.contains(l))
     }
 }
