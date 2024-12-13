@@ -9,7 +9,7 @@ struct Claw {
     target: Pos
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Pos {
     row: usize,
     col: usize
@@ -59,43 +59,50 @@ impl FromStr for Pos {
 }
 
 impl Pos {
-    fn add(&mut self, delta: &Pos, times: usize) {
-        self.row += delta.row * times;
-        self.col += delta.col * times;
+    fn add(&mut self, delta: &Pos) {
+        self.row += delta.row;
+        self.col += delta.col;
     }
 }
 
 impl Claw {
     fn win(&self) -> Option<Presses> {
         let mut min_press: Option<Presses> = None;
-        for b in 0..101 {
-            let mut pos = Pos {
-                row: 0,
-                col: 0
+        let mut a = 0;
+        let mut pos_a = Pos {
+            row: 0,
+            col: 0
+        };
+        while pos_a.row <= self.target.row && pos_a.col <= self.target.col {
+            let b_row = if self.b_delta.row == 0 {
+                None
+            } else {
+                Some((self.target.row - pos_a.row) / self.b_delta.row)
             };
-            pos.add(&self.b_delta, b);
-            if pos.row > self.target.row || pos.col > self.target.col {
-                break;
-            }
-            for a in 0..101 {
-                if pos.row == self.target.row && pos.col == self.target.col {
-                    // found a way to win, keep track of cheapest
-                    let new = Presses {
-                        a, b
-                    };
-                    if let Some(existing) = &min_press {
-                        if new.cost() < existing.cost() {
-                            min_press = Some(new);
-                        }
-                    } else {
+            let b_col = if self.b_delta.col == 0 {
+                None
+            } else {
+                Some((self.target.col - pos_a.col) / self.b_delta.col)
+            };
+            if (b_row.is_none() && b_col.unwrap() * self.b_delta.col == self.target.col - pos_a.col)
+            || (b_col.is_none() && b_row.unwrap() * self.b_delta.row == self.target.row - pos_a.row)
+            || (b_row == b_col && b_row.unwrap() * self.b_delta.row == self.target.row - pos_a.row && b_col.unwrap() * self.b_delta.col == self.target.col - pos_a.col) {
+                // found a way to win, keep track of cheapest
+                let b = b_row.unwrap_or_else(|| b_col.unwrap());
+                let new = Presses {
+                    a, b
+                };
+                if let Some(existing) = &min_press {
+                    if new.cost() < existing.cost() {
                         min_press = Some(new);
                     }
-                }
-                pos.add(&self.a_delta, 1);
-                if pos.row > self.target.row || pos.col > self.target.col {
-                    break;
+                } else {
+                    min_press = Some(new);
+                    return min_press;
                 }
             }
+            pos_a.add(&self.a_delta);
+            a += 1;
         }
         min_press
     }
@@ -108,17 +115,32 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let claws: Vec<Claw> = text.split("\r\n\r\n").map(|s| s.parse().unwrap()).collect();
-        let mut tokens = 0;
-        for claw in claws {
+        println!("PART1");
+        let mut part1 = 0;
+        for claw in &claws {
             if let Some(presses) = claw.win() {
                 let cost = presses.cost();
-                tokens += cost;
+                part1 += cost;
                 println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
             } else {
                 println!("Can't be won");
             }
         }
-        println!("Total tokens: {:?}", tokens);
+        println!("PART2");
+        let mut part2 = 0;
+        for mut claw in claws {
+            claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
+            if let Some(presses) = claw.win() {
+                let cost = presses.cost();
+                part2 += cost;
+                println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
+            } else {
+                println!("Can't be won");
+            }
+        }
+        println!("RESULTS");
+        println!("Part1 tokens: {:?}", part1);
+        println!("Part2 tokens: {:?}", part2);
     } else {
         println!("Please provide 1 argument: Filename");
     }
