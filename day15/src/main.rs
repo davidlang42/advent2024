@@ -7,13 +7,13 @@ struct Map {
     robot: Pos
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Pos {
     row: usize,
     col: usize
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum Tile {
     Empty,
     Box,
@@ -76,9 +76,26 @@ impl Direction {
             _ => panic!("Invalid tile: {}", ch)
         }
     }
+
+    fn delta(&self) -> (isize, isize) {
+        match self {
+            Self::Up => (-1, 0),
+            Self::Right => (0, 1),
+            Self::Down => (1, 0),
+            Self::Left => (0, -1)
+        }
+    }
 }
 
 impl Map {
+    fn get(&self, pos: &Pos) -> &Tile {
+        &self.tiles[pos.row][pos.col]
+    }
+
+    fn set(&mut self, pos: &Pos, tile: Tile) {
+        self.tiles[pos.row][pos.col] = tile;
+    }
+
     fn move_all(&mut self, directions: Vec<Direction>) {
         for direction in directions {
             self.move_one(direction);
@@ -86,7 +103,36 @@ impl Map {
     }
 
     fn move_one(&mut self, direction: Direction) {
-        //TODO
+        let (dr, dc) = direction.delta();
+        let existing = self.robot.clone();
+        if self.maybe_move(&existing, dr, dc) {
+            self.robot.row = (self.robot.row as isize + dr) as usize;
+            self.robot.col = (self.robot.col as isize + dc) as usize;
+        }
+    }
+
+    fn maybe_move(&mut self, pos: &Pos, dr: isize, dc: isize) -> bool {
+        let new_pos = Pos {
+            row: (pos.row as isize + dr) as usize,
+            col: (pos.col as isize + dc) as usize
+        };
+        match self.get(&new_pos) {
+            Tile::Wall => false,
+            Tile::Empty => {
+                self.set(&new_pos, *self.get(&pos));
+                self.set(&pos, Tile::Empty);
+                true
+            },
+            Tile::Box => {
+                if self.maybe_move(&new_pos, dr, dc) {
+                    self.set(&new_pos, *self.get(&pos));
+                    self.set(&pos, Tile::Empty);
+                    true
+                } else {
+                    false
+                }
+            }
+        }
     }
 
     fn sum_gps(&self) -> usize {
