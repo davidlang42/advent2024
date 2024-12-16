@@ -80,10 +80,11 @@ impl Claw {
             change = row.limit(&col.x_range, &col.y_range);
             change = col.limit(&row.x_range, &row.y_range) || change;
         }
-        let row_solutions = row.all();
-        println!("All row soln: {:?}", row.all());
         let column_solutions = col.all();
         println!("All col soln: {:?}", col.all());
+        let row_solutions = row.all();
+        println!("All row soln: {:?}", row.all());
+        
         let mut min_press: Option<Presses> = None;
         for rs in row_solutions {
             if column_solutions.contains(&rs) {
@@ -209,14 +210,10 @@ impl LinearSolution {
                 let y_range = LinearRange::from(y1 as usize, y2 as usize);
                 return Self {
                     a, b, c, d, x0, y0, x_range, y_range
-                }
+                };
             }
             x0 += 1;
         }
-    }
-
-    fn any(&self) -> (isize, isize) {
-        (self.x0, self.y0)
     }
 
     fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> bool {
@@ -241,6 +238,19 @@ impl LinearSolution {
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
+        let (min_m, max_m) = self.get_m_range();
+        let mut solutions = HashSet::new();
+        for m in min_m..(max_m + 1) {
+            let x = self.c * self.x0 / self.d - m * self.b / self.d;
+            let y = self.a * m / self.d + self.c * self.y0 / self.d;
+            if self.a * x + self.b * y == self.c {
+                solutions.insert((x as usize, y as usize));
+            }
+        }
+        solutions
+    }
+
+    fn get_m_range(&self) -> (isize, isize) {
         let m_x1 = self.c * self.x0 / self.b - self.y_range.min as isize * self.d / self.b;
         let m_x2 = self.c * self.x0 / self.b - self.y_range.max as isize * self.d / self.b;
         let (m_min_x, m_max_x) = if m_x1 > m_x2 {
@@ -257,15 +267,7 @@ impl LinearSolution {
         };
         let min_m = m_min_x.max(m_min_y);
         let max_m = m_max_x.min(m_max_y);
-        let mut solutions = HashSet::new();
-        for m in min_m..(max_m + 1) {
-            let x = self.c * self.x0 / self.d - m * self.b / self.d;
-            let y = self.a * m / self.d + self.c * self.y0 / self.d;
-            if self.a * x + self.b * y == self.c {
-                solutions.insert((x as usize, y as usize));
-            }
-        }
-        solutions
+        (min_m, max_m)
     }
 }
 
@@ -288,9 +290,5 @@ impl LinearRange {
                 max: b
             }
         }
-    }
-
-    fn diff(&self) -> usize {
-        self.max - self.min
     }
 }
