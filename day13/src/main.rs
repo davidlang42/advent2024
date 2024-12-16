@@ -72,27 +72,13 @@ impl Claw {
         let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
         let mut change = true;
-        let (mut x_row_0, mut y_row_0) = row.range();
-        let (mut x_col_0, mut y_col_0) = col.range();
         while change {
-            let (x_row, y_row) = row.range();
-            println!("Row x range: {:?}", x_row);
-            println!("Row y range: {:?}", y_row);
-            let (x_col, y_col) = col.range();
-            println!("Col x range: {:?}", x_col);
-            println!("Col y range: {:?}", y_col);
-
-            if x_row_0.diff() < x_row.diff() ||y_row_0.diff() < y_row.diff() ||x_col_0.diff() < x_col.diff() ||y_col_0.diff() < y_col.diff() {
-                panic!();
-            }
-
-            change = row.limit(&x_col, &y_col);
-            change = col.limit(&x_row, &y_row) || change;
-
-            x_row_0 = x_row;
-            x_col_0 = x_col;
-            y_row_0 = y_row;
-            y_col_0 = y_col;
+            println!("Row x range: {:?}", row.x_range);
+            println!("Row y range: {:?}", row.y_range);
+            println!("Col x range: {:?}", col.x_range);
+            println!("Col y range: {:?}", col.y_range);
+            change = row.limit(&col.x_range, &col.y_range);
+            change = col.limit(&row.x_range, &row.y_range) || change;
         }
         let row_solutions = row.all();
         println!("All row soln: {:?}", row.all());
@@ -133,7 +119,6 @@ fn main() {
                 let cost = presses.cost();
                 part1 += cost;
                 println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
-                panic!();
             } else {
                 //println!("Can't be won");
             }
@@ -198,26 +183,32 @@ struct LinearSolution {
     d: isize,
     x0: isize,
     y0: isize,
-    min_m: isize,
-    max_m: isize
+    x_range: LinearRange,
+    y_range: LinearRange
 }
 
 impl LinearSolution {
     fn from(equation: &LinearEquation) -> Self {
         let mut x0 = 0;
+        let a = equation.a as isize;
+        let b = equation.b as isize;
+        let c = equation.c as isize;
+        let d = equation.d as isize;
         loop {
-            let numerator = equation.d as isize - x0 * equation.a as isize;
-            let denominator = equation.b as isize;
+            let numerator = d - x0 * a;
+            let denominator = b;
             if numerator.rem_euclid(denominator) == 0 {
                 let y0 = numerator / denominator;
-                let min_m = -1 * equation.c as isize * y0 / equation.a as isize;
-                let max_m = equation.c as isize * x0 / equation.b as isize;
+                let min_m = -1 * c * y0 / a;
+                let max_m = c * x0 / b;
+                let x1 = c * x0 / d - min_m * b / d;
+                let x2 = c * x0 / d - max_m * b / d;
+                let y1 = a * min_m / d + c * y0 / d;
+                let y2 = a * max_m / d + c * y0 / d;
+                let x_range = LinearRange::from(x1 as usize, x2 as usize);
+                let y_range = LinearRange::from(y1 as usize, y2 as usize);
                 return Self {
-                    a: equation.a as isize,
-                    b: equation.b as isize,
-                    c: equation.c as isize,
-                    d: equation.d as isize,
-                    x0, y0, min_m, max_m
+                    a, b, c, d, x0, y0, x_range, y_range
                 }
             }
             x0 += 1;
@@ -228,49 +219,46 @@ impl LinearSolution {
         (self.x0, self.y0)
     }
 
-    fn range(&self) -> (LinearRange, LinearRange) {
-        let x1 = self.c * self.x0 / self.d - self.min_m * self.b / self.d;
-        let x2 = self.c * self.x0 / self.d - self.max_m * self.b / self.d;
-        let y1 = self.a * self.min_m / self.d + self.c * self.y0 / self.d;
-        let y2 = self.a * self.max_m / self.d + self.c * self.y0 / self.d;
-        (
-            LinearRange::from(x1 as usize, x2 as usize),
-            LinearRange::from(y1 as usize, y2 as usize)
-        )
-    }
-
     fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> bool {
-        let m_x1 = self.c * self.x0 / self.b - x.min as isize * self.d / self.b;
-        let m_x2 = self.c * self.x0 / self.b - x.max as isize * self.d / self.b;
-        let (m_min_x, m_max_x) = if m_x1 > m_x2 {
-            (m_x2, m_x1)
-        } else {
-            (m_x1, m_x2)
-        };
-        let m_y1 = y.min as isize * self.d / self.a - self.c * self.y0 / self.a;
-        let m_y2 = y.max as isize * self.d / self.a - self.c * self.y0 / self.a;
-        let (m_min_y, m_max_y) = if m_y1 > m_y2 {
-            (m_y2, m_y1)
-        } else {
-            (m_y1, m_y2)
-        };
-        let new_min_m = m_min_x.max(m_min_y);
-        let new_max_m = m_max_x.min(m_max_y);
         let mut change = false;
-        if new_min_m > self.min_m {
-            self.min_m = new_min_m;
+        if x.min > self.x_range.min {
+            self.x_range.min = x.min;
             change = true;
         }
-        if new_max_m < self.max_m {
-            self.max_m = new_max_m;
+        if x.max < self.x_range.max {
+            self.x_range.max = x.max;
+            change = true;
+        }
+        if y.min > self.y_range.min {
+            self.y_range.min = y.min;
+            change = true;
+        }
+        if y.max < self.y_range.max {
+            self.y_range.max = y.max;
             change = true;
         }
         change
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
+        let m_x1 = self.c * self.x0 / self.b - self.y_range.min as isize * self.d / self.b;
+        let m_x2 = self.c * self.x0 / self.b - self.y_range.max as isize * self.d / self.b;
+        let (m_min_x, m_max_x) = if m_x1 > m_x2 {
+            (m_x2, m_x1 + 1)
+        } else {
+            (m_x1, m_x2 + 1)
+        };
+        let m_y1 = self.y_range.min as isize * self.d / self.a - self.c * self.y0 / self.a;
+        let m_y2 = self.y_range.max as isize * self.d / self.a - self.c * self.y0 / self.a;
+        let (m_min_y, m_max_y) = if m_y1 > m_y2 {
+            (m_y2, m_y1 + 1)
+        } else {
+            (m_y1, m_y2 + 1)
+        };
+        let min_m = m_min_x.max(m_min_y);
+        let max_m = m_max_x.min(m_max_y);
         let mut solutions = HashSet::new();
-        for m in self.min_m..(self.max_m + 1) {
+        for m in min_m..(max_m + 1) {
             let x = self.c * self.x0 / self.d - m * self.b / self.d;
             let y = self.a * m / self.d + self.c * self.y0 / self.d;
             if self.a * x + self.b * y == self.c {
