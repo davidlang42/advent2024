@@ -115,6 +115,7 @@ fn main() {
                 //println!("Can't be won");
             }
         }
+        println!("Part1 tokens: {:?}", part1);
         println!("PART2");
         let mut part2 = 0;
         for mut claw in claws {
@@ -172,7 +173,9 @@ struct LinearSolution {
     c: isize,
     d: isize,
     x0: isize,
-    y0: isize
+    y0: isize,
+    min_m: isize,
+    max_m: isize
 }
 
 impl LinearSolution {
@@ -183,12 +186,14 @@ impl LinearSolution {
             let denominator = equation.b as isize;
             if numerator.rem_euclid(denominator) == 0 {
                 let y0 = numerator / denominator;
+                let min_m = -1 * equation.c as isize * y0 / equation.a as isize;
+                let max_m = equation.c as isize * x0 / equation.b as isize;
                 return Self {
                     a: equation.a as isize,
                     b: equation.b as isize,
                     c: equation.c as isize,
                     d: equation.d as isize,
-                    x0, y0
+                    x0, y0, min_m, max_m
                 }
             }
             x0 += 1;
@@ -197,9 +202,7 @@ impl LinearSolution {
 
     fn all(&self) -> HashSet<(usize, usize)> {
         let mut solutions = HashSet::new();
-        let min_m = -1 * self.c * self.y0 / self.a;
-        let max_m = self.c * self.x0 / self.b;
-        for m in min_m..(max_m + 1) {
+        for m in self.min_m..(self.max_m + 1) {
             let x = self.c * self.x0 / self.d - m * self.b / self.d;
             let y = self.a * m / self.d + self.c * self.y0 / self.d;
             if self.a * x + self.b * y == self.c {
