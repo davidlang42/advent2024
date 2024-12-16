@@ -71,7 +71,10 @@ impl FromStr for Pos {
 
 impl Map {
     fn simulate(&mut self, seconds: usize) {
-        //TODO
+        for r in &mut self.robots {
+            r.position.row = (r.position.row + seconds as isize * r.velocity.row).rem_euclid(self.size.row);
+            r.position.col = (r.position.col + seconds as isize * r.velocity.col).rem_euclid(self.size.col);
+        }
     }
 
     fn count_robots(&self, from_row: isize, less_than_row: isize, from_col: isize, less_than_col: isize) -> usize {
