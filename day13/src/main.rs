@@ -71,7 +71,11 @@ impl Claw {
     fn win(&self) -> Option<Presses> {
         let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row);
         let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col);
-
+        if !row.has_soln() || !col.has_soln() {
+            return None;
+        }
+        let row_solutions = row.solve().unwrap().all();
+        let column_solutions = col.solve().unwrap().all();
         let mut min_press: Option<Presses> = None;
         for rs in row_solutions {
             if column_solutions.contains(&rs) {
@@ -99,7 +103,7 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let claws: Vec<Claw> = text.split("\n\n").map(|s| s.parse().unwrap()).collect(); // "\r\n\r\n" on windows
+        let claws: Vec<Claw> = text.split("\r\n\r\n").map(|s| s.parse().unwrap()).collect(); // "\n\n" on unix
         println!("PART1");
         let mut part1 = 0;
         for claw in &claws {
@@ -139,7 +143,10 @@ struct LinearEquation {
 }
 
 impl LinearEquation {
-    fn new(a_u: usize, b_u: usize, c_u: usize) -> Self {
+    // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
+    // ax + by = c
+
+    fn new(a: usize, b: usize, c: usize) -> Self {
         let d = a.gcd(b);
         Self {
             a, b, c, d
@@ -147,42 +154,58 @@ impl LinearEquation {
     }
 
     fn has_soln(&self) -> bool {
-        
+        self.c.rem_euclid(self.d) == 0
     }
 
+    fn solve(&self) -> Option<LinearSolution> {
+        if self.has_soln() {
+            Some(LinearSolution::from(self))
+        } else {
+            None
+        }
+    }
+}
 
-    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize) -> HashSet<(usize, usize)> {
-        // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
-        // ax + by = c
-        let a = a_u as isize;
-        let b = b_u as isize;
-        let c = c_u as isize;
-        let mut solutions = HashSet::new();
-        let d = a_u.gcd(b_u) as isize;
-        if c.rem_euclid(d) == 0 {
-            let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
-            let min_m = -1 * c * y0 / a;
-            let max_m = c * x0 / b;
-            for m in min_m..(max_m + 1) {
-                let x = c * x0 / d - m * b / d;
-                let y = a * m / d + c * y0 / d;
-                if a * x + b * y == c {
-                    solutions.insert((x as usize, y as usize));
+struct LinearSolution {
+    a: isize,
+    b: isize,
+    c: isize,
+    d: isize,
+    x0: isize,
+    y0: isize
+}
+
+impl LinearSolution {
+    fn from(equation: &LinearEquation) -> Self {
+        let mut x0 = 0;
+        loop {
+            let numerator = equation.d as isize - x0 * equation.a as isize;
+            let denominator = equation.b as isize;
+            if numerator.rem_euclid(denominator) == 0 {
+                let y0 = numerator / denominator;
+                return Self {
+                    a: equation.a as isize,
+                    b: equation.b as isize,
+                    c: equation.c as isize,
+                    d: equation.d as isize,
+                    x0, y0
                 }
+            }
+            x0 += 1;
+        }
+    }
+
+    fn all(&self) -> HashSet<(usize, usize)> {
+        let mut solutions = HashSet::new();
+        let min_m = -1 * self.c * self.y0 / self.a;
+        let max_m = self.c * self.x0 / self.b;
+        for m in min_m..(max_m + 1) {
+            let x = self.c * self.x0 / self.d - m * self.b / self.d;
+            let y = self.a * m / self.d + self.c * self.y0 / self.d;
+            if self.a * x + self.b * y == self.c {
+                solutions.insert((x as usize, y as usize));
             }
         }
         solutions
     }
-
-    fn solve_linear_equation_any(a: isize, b: isize, c: isize) -> (isize, isize) {
-        let mut x = 0;
-        loop {
-            let y = (c - x * a) / b;
-            if (c - x * a).rem_euclid(b) == 0 {
-                return (x, y);
-            }
-            x += 1;
-        }
-    }
-
 }
