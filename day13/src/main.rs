@@ -72,6 +72,8 @@ impl Claw {
         let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
         let mut change = true;
+        let (mut x_row_0, mut y_row_0) = row.range();
+        let (mut x_col_0, mut y_col_0) = col.range();
         while change {
             let (x_row, y_row) = row.range();
             println!("Row x range: {:?}", x_row);
@@ -79,8 +81,18 @@ impl Claw {
             let (x_col, y_col) = col.range();
             println!("Col x range: {:?}", x_col);
             println!("Col y range: {:?}", y_col);
-            change = row.limit(x_col, y_col);
-            change = col.limit(x_row, y_row) || change;
+
+            if x_row_0.diff() < x_row.diff() ||y_row_0.diff() < y_row.diff() ||x_col_0.diff() < x_col.diff() ||y_col_0.diff() < y_col.diff() {
+                panic!();
+            }
+
+            change = row.limit(&x_col, &y_col);
+            change = col.limit(&x_row, &y_row) || change;
+
+            x_row_0 = x_row;
+            x_col_0 = x_col;
+            y_row_0 = y_row;
+            y_col_0 = y_col;
         }
         let row_solutions = row.all();
         println!("All row soln: {:?}", row.all());
@@ -227,7 +239,7 @@ impl LinearSolution {
         )
     }
 
-    fn limit(&mut self, x: LinearRange, y: LinearRange) -> bool {
+    fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> bool {
         let m_x1 = self.c * self.x0 / self.b - x.min as isize * self.d / self.b;
         let m_x2 = self.c * self.x0 / self.b - x.max as isize * self.d / self.b;
         let (m_min_x, m_max_x) = if m_x1 > m_x2 {
@@ -269,7 +281,7 @@ impl LinearSolution {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct LinearRange {
     min: usize,
     max: usize
@@ -288,5 +300,9 @@ impl LinearRange {
                 max: b
             }
         }
+    }
+
+    fn diff(&self) -> usize {
+        self.max - self.min
     }
 }
