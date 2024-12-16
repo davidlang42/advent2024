@@ -7,6 +7,11 @@ struct Map {
     robot: Pos
 }
 
+struct BigMap {
+    tiles: Vec<Vec<BigTile>>,
+    robot: Pos
+}
+
 #[derive(Debug, Clone)]
 struct Pos {
     row: usize,
@@ -17,6 +22,14 @@ struct Pos {
 enum Tile {
     Empty,
     Box,
+    Wall
+}
+
+#[derive(PartialEq, Copy, Clone)]
+enum BigTile {
+    Empty,
+    LeftBox,
+    RightBox,
     Wall
 }
 
@@ -96,13 +109,13 @@ impl Map {
         self.tiles[pos.row][pos.col] = tile;
     }
 
-    fn move_all(&mut self, directions: Vec<Direction>) {
+    fn move_all(&mut self, directions: &Vec<Direction>) {
         for direction in directions {
             self.move_one(direction);
         }
     }
 
-    fn move_one(&mut self, direction: Direction) {
+    fn move_one(&mut self, direction: &Direction) {
         let (dr, dc) = direction.delta();
         let existing = self.robot.clone();
         if self.maybe_move(&existing, dr, dc) {
@@ -146,6 +159,92 @@ impl Map {
         }
         sum
     }
+
+    fn expand(&self) -> BigMap {
+        let mut tiles = Vec::new();
+        for old_row in &self.tiles {
+            let mut new_row = Vec::new();
+            for old_tile in old_row {
+                new_row.append(&mut match old_tile {
+                    Tile::Empty => vec![BigTile::Empty, BigTile::Empty],
+                    Tile::Wall => vec![BigTile::Wall, BigTile::Wall],
+                    Tile::Box => vec![BigTile::LeftBox, BigTile::RightBox]
+                });
+            }
+            tiles.push(new_row);
+        }
+        let robot = Pos {
+            row: self.robot.row,
+            col: self.robot.col * 2
+        };
+        BigMap {
+            tiles,
+            robot
+        }
+    }
+}
+
+impl BigMap {
+    fn get(&self, pos: &Pos) -> &BigTile {
+        &self.tiles[pos.row][pos.col]
+    }
+
+    fn set(&mut self, pos: &Pos, tile: BigTile) {
+        self.tiles[pos.row][pos.col] = tile;
+    }
+
+    fn move_all(&mut self, directions: &Vec<Direction>) {
+        for direction in directions {
+            self.move_one(direction);
+        }
+    }
+
+    fn move_one(&mut self, direction: &Direction) {
+        let (dr, dc) = direction.delta();
+        let existing = self.robot.clone();
+        if self.maybe_move(&existing, dr, dc) {
+            self.robot.row = (self.robot.row as isize + dr) as usize;
+            self.robot.col = (self.robot.col as isize + dc) as usize;
+        }
+    }
+
+    fn maybe_move(&mut self, pos: &Pos, dr: isize, dc: isize) -> bool {
+        let new_pos = Pos {
+            row: (pos.row as isize + dr) as usize,
+            col: (pos.col as isize + dc) as usize
+        };
+        match self.get(&new_pos) {
+            BigTile::Wall => false,
+            BigTile::Empty => {
+                self.set(&new_pos, *self.get(&pos));
+                self.set(&pos, BigTile::Empty);
+                true
+            },
+            BigTile::LeftBox => todo!(),
+            BigTile::RightBox => todo!()
+            // Tile::Box => {
+            //     if self.maybe_move(&new_pos, dr, dc) {
+            //         self.set(&new_pos, *self.get(&pos));
+            //         self.set(&pos, Tile::Empty);
+            //         true
+            //     } else {
+            //         false
+            //     }
+            // }
+        }
+    }
+
+    fn sum_gps(&self) -> usize {
+        let mut sum = 0;
+        for row in 0..self.tiles.len() {
+            for col in 0..self.tiles[0].len() {
+                if self.tiles[row][col] == BigTile::LeftBox {
+                    sum += row * 100 + col;
+                }
+            }
+        }
+        sum
+    }
 }
 
 fn main() {
@@ -154,19 +253,22 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let sections: Vec<&str> = text.split("\r\n\r\n").collect();
+        let sections: Vec<&str> = text.split("\n\n").collect(); // "\r\n\r\n" on Windows
         if sections.len() != 2 {
             panic!("Invalid input sections");
         }
         let mut map: Map = sections[0].parse().unwrap();
+        let mut big_map = map.expand();
         let mut directions = Vec::new();
         for line in sections[1].lines() {
             for ch in line.chars() {
                 directions.push(Direction::from_char(ch));
             }
         }
-        map.move_all(directions);
+        map.move_all(&directions);
         println!("GPS Sum: {}", map.sum_gps());
+        big_map.move_all(&directions);
+        println!("Big GPS Sum: {}", big_map.sum_gps());
     } else {
         println!("Please provide 1 argument: Filename");
     }
