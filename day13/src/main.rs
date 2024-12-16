@@ -71,20 +71,17 @@ impl Claw {
     fn win(&self) -> Option<Presses> {
         let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
-        let (x_row, y_row) = row.range();
-        println!("Row x range: {:?}", x_row);
-        println!("Row y range: {:?}", y_row);
-        let (x_col, y_col) = col.range();
-        println!("Col x range: {:?}", x_col);
-        println!("Col y range: {:?}", y_col);
-        row.limit(x_col, y_col);
-        col.limit(x_row, y_row);
-        let (mut x, mut y) = row.range();
-        println!("New row x range: {:?}", x);
-        println!("New row y range: {:?}", y);
-        (x,y) = col.range();
-        println!("New col x range: {:?}", x);
-        println!("New col y range: {:?}", y);
+        let mut change = true;
+        while change {
+            let (x_row, y_row) = row.range();
+            println!("Row x range: {:?}", x_row);
+            println!("Row y range: {:?}", y_row);
+            let (x_col, y_col) = col.range();
+            println!("Col x range: {:?}", x_col);
+            println!("Col y range: {:?}", y_col);
+            change = row.limit(x_col, y_col);
+            change = col.limit(x_row, y_row) || change;
+        }
         let row_solutions = row.all();
         println!("All row soln: {:?}", row.all());
         let column_solutions = col.all();
@@ -230,7 +227,7 @@ impl LinearSolution {
         )
     }
 
-    fn limit(&mut self, x: LinearRange, y: LinearRange) {
+    fn limit(&mut self, x: LinearRange, y: LinearRange) -> bool {
         let m_x1 = self.c * self.x0 / self.b - x.min as isize * self.d / self.b;
         let m_x2 = self.c * self.x0 / self.b - x.max as isize * self.d / self.b;
         let (m_min_x, m_max_x) = if m_x1 > m_x2 {
@@ -245,8 +242,18 @@ impl LinearSolution {
         } else {
             (m_y1, m_y2)
         };
-        self.min_m = m_min_x.max(m_min_y);
-        self.max_m = m_max_x.min(m_max_y);
+        let new_min_m = m_min_x.max(m_min_y);
+        let new_max_m = m_max_x.min(m_max_y);
+        let mut change = false;
+        if new_min_m > self.min_m {
+            self.min_m = new_min_m;
+            change = true;
+        }
+        if new_max_m < self.max_m {
+            self.max_m = new_max_m;
+            change = true;
+        }
+        change
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
