@@ -210,35 +210,87 @@ impl BigMap {
     fn move_one(&mut self, direction: &Direction) {
         let (dr, dc) = direction.delta();
         let existing = self.robot.clone();
-        if self.maybe_move(&existing, dr, dc) {
+        if self.can_move(&existing, dr, dc) {
+            self.do_move(&existing, dr, dc);
             self.robot.row = (self.robot.row as isize + dr) as usize;
             self.robot.col = (self.robot.col as isize + dc) as usize;
         }
     }
 
-    fn maybe_move(&mut self, pos: &Pos, dr: isize, dc: isize) -> bool {
+    fn can_move(&mut self, pos: &Pos, dr: isize, dc: isize) -> bool {
         let new_pos = Pos {
             row: (pos.row as isize + dr) as usize,
             col: (pos.col as isize + dc) as usize
         };
         match self.get(&new_pos) {
             BigTile::Wall => false,
+            BigTile::Empty => true,
+            BigTile::LeftBox => {
+                let right_box_new_pos = Pos {
+                    row: new_pos.row,
+                    col: new_pos.col + 1
+                };
+                if dc > 0 {
+                    self.can_move(&right_box_new_pos, dr, dc)
+                } else {
+                    self.can_move(&new_pos, dr, dc) && self.can_move(&right_box_new_pos, dr, dc)
+                }
+            },
+            BigTile::RightBox => {
+                let left_box_new_pos = Pos {
+                    row: new_pos.row,
+                    col: new_pos.col - 1
+                };
+                if dc < 0 {
+                    self.can_move(&left_box_new_pos, dr, dc)
+                } else {
+                    self.can_move(&new_pos, dr, dc) && self.can_move(&left_box_new_pos, dr, dc)
+                }
+            }
+        }
+    }
+
+    fn do_move(&mut self, pos: &Pos, dr: isize, dc: isize) {
+        let new_pos = Pos {
+            row: (pos.row as isize + dr) as usize,
+            col: (pos.col as isize + dc) as usize
+        };
+        match self.get(&new_pos) {
+            BigTile::Wall => panic!("Tried to move a wall"),
             BigTile::Empty => {
                 self.set(&new_pos, *self.get(&pos));
                 self.set(&pos, BigTile::Empty);
-                true
             },
-            BigTile::LeftBox => todo!(),
-            BigTile::RightBox => todo!()
-            // Tile::Box => {
-            //     if self.maybe_move(&new_pos, dr, dc) {
-            //         self.set(&new_pos, *self.get(&pos));
-            //         self.set(&pos, Tile::Empty);
-            //         true
-            //     } else {
-            //         false
-            //     }
-            // }
+            BigTile::LeftBox => {
+                let right_box_new_pos = Pos {
+                    row: new_pos.row,
+                    col: new_pos.col + 1
+                };
+                if dc > 0 {
+                    self.do_move(&right_box_new_pos, dr, dc);
+                    self.do_move(&new_pos, dr, dc);
+                } else {
+                    self.do_move(&new_pos, dr, dc);
+                    self.do_move(&right_box_new_pos, dr, dc);
+                }
+                self.set(&new_pos, *self.get(&pos));
+                self.set(&pos, BigTile::Empty);
+            },
+            BigTile::RightBox => {
+                let left_box_new_pos = Pos {
+                    row: new_pos.row,
+                    col: new_pos.col - 1
+                };
+                if dc < 0 {
+                    self.do_move(&left_box_new_pos, dr, dc);
+                    self.do_move(&new_pos, dr, dc);
+                } else {
+                    self.do_move(&new_pos, dr, dc);
+                    self.do_move(&left_box_new_pos, dr, dc);
+                }
+                self.set(&new_pos, *self.get(&pos));
+                self.set(&pos, BigTile::Empty);
+            }
         }
     }
 
