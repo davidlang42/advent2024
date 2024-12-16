@@ -1,6 +1,7 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
+use gcd::Gcd;
 
 #[derive(Debug)]
 struct Claw {
@@ -66,7 +67,48 @@ impl Pos {
 }
 
 impl Claw {
+    fn solve_linear_equation(a_u: usize, b_u: usize, c_u: usize) -> Vec<(usize, usize)> {
+        // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
+        // ax + by = c
+        let a = a_u as isize;
+        let b = b_u as isize;
+        let c = c_u as isize;
+        let mut v = Vec::new();
+        let d = a_u.gcd(b_u) as isize;
+        if c.rem_euclid(d) == 0 {
+            if let Some((x0, y0)) = Self::solve_linear_equation_slow(a, b, d) {
+                let min_m = -1 * c * y0 / a;
+                let max_m = c * x0 / b;
+                for m in min_m..(max_m + 1) {
+                    let x = c * x0 / d - m * b / d;
+                    let y = a * m / d + c * y0 / d;
+                    if a * x + b * y == c {
+                        v.push((x as usize, y as usize));
+                    }
+                }
+            }
+        }
+        v
+    }
+
+    fn solve_linear_equation_slow(a: isize, b: isize, c: isize) -> Option<(isize, isize)> {
+        let max_x = c / a;
+        for x in 0..(max_x + 1) {
+            let max_y = (c - x * a)  / b;
+            for y in 0..(max_y + 1) {
+                if a * x + b * y == c {
+                    return Some((x, y));
+                }
+            }
+        }
+        None
+    }
+
     fn win(&self) -> Option<Presses> {
+        let le_row = Self::solve_linear_equation(self.a_delta.row, self.b_delta.row, self.target.row);
+        let le_col = Self::solve_linear_equation(self.a_delta.col, self.b_delta.col, self.target.col);
+        println!("row sol: {:?}", le_row);
+        println!("col sol: {:?}", le_col);
         let mut min_press: Option<Presses> = None;
         let mut a = 0;
         let mut pos_a = Pos {
@@ -104,6 +146,9 @@ impl Claw {
             pos_a.add(&self.a_delta);
             a += 1;
         }
+        if min_press.is_none() {
+            println!("Nope");
+        }
         min_press
     }
 }
@@ -114,7 +159,7 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let claws: Vec<Claw> = text.split("\r\n\r\n").map(|s| s.parse().unwrap()).collect();
+        let claws: Vec<Claw> = text.split("\n\n").map(|s| s.parse().unwrap()).collect(); // "\r\n\r\n" on windows
         println!("PART1");
         let mut part1 = 0;
         for claw in &claws {
@@ -123,19 +168,19 @@ fn main() {
                 part1 += cost;
                 println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
             } else {
-                println!("Can't be won");
+                //println!("Can't be won");
             }
         }
         println!("PART2");
         let mut part2 = 0;
         for mut claw in claws {
-            claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
+            //claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
             if let Some(presses) = claw.win() {
                 let cost = presses.cost();
                 part2 += cost;
                 println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
             } else {
-                println!("Can't be won");
+                //println!("Can't be won");
             }
         }
         println!("RESULTS");
