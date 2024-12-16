@@ -69,13 +69,10 @@ impl Pos {
 
 impl Claw {
     fn win(&self) -> Option<Presses> {
-        let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row);
-        let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col);
-        if !row.has_soln() || !col.has_soln() {
-            return None;
-        }
-        let row_solutions = row.solve().unwrap().all();
-        let column_solutions = col.solve().unwrap().all();
+        let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
+        let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
+        let row_solutions = row.all();
+        let column_solutions = col.all();
         let mut min_press: Option<Presses> = None;
         for rs in row_solutions {
             if column_solutions.contains(&rs) {
