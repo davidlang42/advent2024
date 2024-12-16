@@ -71,8 +71,20 @@ impl Claw {
     fn win(&self) -> Option<Presses> {
         let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
+        println!("ROW: {:?}", row);
+        println!("COL: {:?}", col);
+        println!("Any row soln: {:?}", row.any());
+        println!("Any col soln: {:?}", col.any());
+        let (mut x, mut y) = row.range();
+        println!("Row x range: {:?}", x);
+        println!("Row y range: {:?}", y);
+        (x,y) = col.range();
+        println!("Col x range: {:?}", x);
+        println!("Col y range: {:?}", y);
         let row_solutions = row.all();
+        println!("All row soln: {:?}", row.all());
         let column_solutions = col.all();
+        println!("All col soln: {:?}", col.all());
         let mut min_press: Option<Presses> = None;
         for rs in row_solutions {
             if column_solutions.contains(&rs) {
@@ -108,6 +120,7 @@ fn main() {
                 let cost = presses.cost();
                 part1 += cost;
                 println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
+                panic!();
             } else {
                 //println!("Can't be won");
             }
@@ -164,6 +177,7 @@ impl LinearEquation {
     }
 }
 
+#[derive(Debug)]
 struct LinearSolution {
     a: isize,
     b: isize,
@@ -197,6 +211,25 @@ impl LinearSolution {
         }
     }
 
+    fn any(&self) -> (isize, isize) {
+        (self.x0, self.y0)
+    }
+
+    fn range(&self) -> (LinearRange, LinearRange) {
+        let x1 = self.c * self.x0 / self.d - self.min_m * self.b / self.d;
+        let x2 = self.c * self.x0 / self.d - self.max_m * self.b / self.d;
+        let y1 = self.a * self.min_m / self.d + self.c * self.y0 / self.d;
+        let y2 = self.a * self.max_m / self.d + self.c * self.y0 / self.d;
+        (
+            LinearRange::from(x1 as usize, x2 as usize),
+            LinearRange::from(y1 as usize, y2 as usize)
+        )
+    }
+
+    fn limit(&mut self, x: LinearRange, y: LinearRange) {
+        //TODO
+    }
+
     fn all(&self) -> HashSet<(usize, usize)> {
         let mut solutions = HashSet::new();
         for m in self.min_m..(self.max_m + 1) {
@@ -207,5 +240,27 @@ impl LinearSolution {
             }
         }
         solutions
+    }
+}
+
+#[derive(Debug)]
+struct LinearRange {
+    min: usize,
+    max: usize
+}
+
+impl LinearRange {
+    fn from(a: usize, b: usize) -> Self {
+        if a > b {
+            Self {
+                min: b,
+                max: a
+            }
+        } else {
+            Self {
+                min: a,
+                max: b
+            }
+        }
     }
 }
