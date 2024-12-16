@@ -2,6 +2,7 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use gcd::Gcd;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 struct Claw {
@@ -67,70 +68,48 @@ impl Pos {
 }
 
 impl Claw {
-    fn solve_linear_equation(a_u: usize, b_u: usize, c_u: usize) -> Vec<(usize, usize)> {
+    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize) -> HashSet<(usize, usize)> {
         // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
         // ax + by = c
         let a = a_u as isize;
         let b = b_u as isize;
         let c = c_u as isize;
-        let mut v = Vec::new();
+        let mut solutions = HashSet::new();
         let d = a_u.gcd(b_u) as isize;
         if c.rem_euclid(d) == 0 {
-            if let Some((x0, y0)) = Self::solve_linear_equation_slow(a, b, d) {
-                let min_m = -1 * c * y0 / a;
-                let max_m = c * x0 / b;
-                for m in min_m..(max_m + 1) {
-                    let x = c * x0 / d - m * b / d;
-                    let y = a * m / d + c * y0 / d;
-                    if a * x + b * y == c {
-                        v.push((x as usize, y as usize));
-                    }
+            let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
+            let min_m = -1 * c * y0 / a;
+            let max_m = c * x0 / b;
+            for m in min_m..(max_m + 1) {
+                let x = c * x0 / d - m * b / d;
+                let y = a * m / d + c * y0 / d;
+                if a * x + b * y == c {
+                    solutions.insert((x as usize, y as usize));
                 }
             }
         }
-        v
+        solutions
     }
 
-    fn solve_linear_equation_slow(a: isize, b: isize, c: isize) -> Option<(isize, isize)> {
-        let max_x = c / a;
-        for x in 0..(max_x + 1) {
-            let max_y = (c - x * a)  / b;
-            for y in 0..(max_y + 1) {
-                if a * x + b * y == c {
-                    return Some((x, y));
-                }
+    fn solve_linear_equation_any(a: isize, b: isize, c: isize) -> (isize, isize) {
+        let mut x = 0;
+        loop {
+            let y = (c - x * a) / b;
+            if (c - x * a).rem_euclid(b) == 0 {
+                return (x, y);
             }
+            x += 1;
         }
-        None
     }
 
     fn win(&self) -> Option<Presses> {
-        let le_row = Self::solve_linear_equation(self.a_delta.row, self.b_delta.row, self.target.row);
-        let le_col = Self::solve_linear_equation(self.a_delta.col, self.b_delta.col, self.target.col);
-        println!("row sol: {:?}", le_row);
-        println!("col sol: {:?}", le_col);
+        let row_solutions = Self::solve_linear_equation_all(self.a_delta.row, self.b_delta.row, self.target.row);
+        let column_solutions = Self::solve_linear_equation_all(self.a_delta.col, self.b_delta.col, self.target.col);
         let mut min_press: Option<Presses> = None;
-        let mut a = 0;
-        let mut pos_a = Pos {
-            row: 0,
-            col: 0
-        };
-        while pos_a.row <= self.target.row && pos_a.col <= self.target.col {
-            let b_row = if self.b_delta.row == 0 {
-                None
-            } else {
-                Some((self.target.row - pos_a.row) / self.b_delta.row)
-            };
-            let b_col = if self.b_delta.col == 0 {
-                None
-            } else {
-                Some((self.target.col - pos_a.col) / self.b_delta.col)
-            };
-            if (b_row.is_none() && b_col.unwrap() * self.b_delta.col == self.target.col - pos_a.col)
-            || (b_col.is_none() && b_row.unwrap() * self.b_delta.row == self.target.row - pos_a.row)
-            || (b_row == b_col && b_row.unwrap() * self.b_delta.row == self.target.row - pos_a.row && b_col.unwrap() * self.b_delta.col == self.target.col - pos_a.col) {
+        for rs in row_solutions {
+            if column_solutions.contains(&rs) {
                 // found a way to win, keep track of cheapest
-                let b = b_row.unwrap_or_else(|| b_col.unwrap());
+                let (a, b) = rs;
                 let new = Presses {
                     a, b
                 };
@@ -140,14 +119,8 @@ impl Claw {
                     }
                 } else {
                     min_press = Some(new);
-                    return min_press;
                 }
             }
-            pos_a.add(&self.a_delta);
-            a += 1;
-        }
-        if min_press.is_none() {
-            println!("Nope");
         }
         min_press
     }
@@ -174,7 +147,7 @@ fn main() {
         println!("PART2");
         let mut part2 = 0;
         for mut claw in claws {
-            //claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
+            claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
             if let Some(presses) = claw.win() {
                 let cost = presses.cost();
                 part2 += cost;
