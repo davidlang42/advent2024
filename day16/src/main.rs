@@ -1,7 +1,7 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
-use pathfinding::prelude::astar;
+use pathfinding::prelude::astar_bag;
 use std::collections::HashSet;
 
 struct Maze {
@@ -123,8 +123,15 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let maze: Maze = text.parse().unwrap();
-        if let Some((_path, cost)) = astar(&maze.start, |(p,d)| p.successors(d, &maze.walls), |(p,d)| p.minimum_cost(&d, &maze.end), |(p,_)| *p == maze.end) {
+        if let Some((paths, cost)) = astar_bag(&maze.start, |(p,d)| p.successors(d, &maze.walls), |(p,d)| p.minimum_cost(&d, &maze.end), |(p,_)| *p == maze.end) {
             println!("Minimum cost: {}", cost);
+            let mut poses: HashSet<Pos> = HashSet::new();
+            for path in paths {
+                for (pos, _d) in path {
+                    poses.insert(pos);
+                }
+            }
+            println!("Number of positions on all shortest paths: {}", poses.len());
         } else {
             println!("No solution");
         }
