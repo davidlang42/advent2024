@@ -1,6 +1,8 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 struct Map {
     size: Pos,
@@ -13,7 +15,7 @@ struct Robot {
     velocity: Pos
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Pos {
     row: isize,
     col: isize
@@ -33,6 +35,25 @@ impl FromStr for Map {
             size,
             robots
         })
+    }
+}
+
+impl Display for Map {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        for row in 0..self.size.row {
+            for col in 0..self.size.col {
+                let count = self.robots.iter().filter(|r| r.position == Pos { row, col }).count();
+                if count == 0 {
+                    write!(f, ".")?;
+                } else if count < 10 {
+                    write!(f, "{}", count)?;
+                } else {
+                    panic!("Too many to print: {}", count);
+                }
+            }
+            writeln!(f, "")?;
+        }
+        Ok(())
     }
 }
 
@@ -117,6 +138,8 @@ fn main() {
         map.simulate(seconds);
         println!("Quadrants: {:?}", map.quadrants());
         println!("Safety factor: {}", map.safety_factor());
+        println!("");
+        println!("{}", map);
     } else {
         println!("Please provide 2 arguments: Filename, Seconds");
     }
