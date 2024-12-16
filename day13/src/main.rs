@@ -68,43 +68,10 @@ impl Pos {
 }
 
 impl Claw {
-    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize) -> HashSet<(usize, usize)> {
-        // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
-        // ax + by = c
-        let a = a_u as isize;
-        let b = b_u as isize;
-        let c = c_u as isize;
-        let mut solutions = HashSet::new();
-        let d = a_u.gcd(b_u) as isize;
-        if c.rem_euclid(d) == 0 {
-            let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
-            let min_m = -1 * c * y0 / a;
-            let max_m = c * x0 / b;
-            for m in min_m..(max_m + 1) {
-                let x = c * x0 / d - m * b / d;
-                let y = a * m / d + c * y0 / d;
-                if a * x + b * y == c {
-                    solutions.insert((x as usize, y as usize));
-                }
-            }
-        }
-        solutions
-    }
-
-    fn solve_linear_equation_any(a: isize, b: isize, c: isize) -> (isize, isize) {
-        let mut x = 0;
-        loop {
-            let y = (c - x * a) / b;
-            if (c - x * a).rem_euclid(b) == 0 {
-                return (x, y);
-            }
-            x += 1;
-        }
-    }
-
     fn win(&self) -> Option<Presses> {
-        let row_solutions = Self::solve_linear_equation_all(self.a_delta.row, self.b_delta.row, self.target.row);
-        let column_solutions = Self::solve_linear_equation_all(self.a_delta.col, self.b_delta.col, self.target.col);
+        let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row);
+        let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col);
+
         let mut min_press: Option<Presses> = None;
         for rs in row_solutions {
             if column_solutions.contains(&rs) {
@@ -162,4 +129,60 @@ fn main() {
     } else {
         println!("Please provide 1 argument: Filename");
     }
+}
+
+struct LinearEquation {
+    a: usize,
+    b: usize,
+    c: usize,
+    d: usize
+}
+
+impl LinearEquation {
+    fn new(a_u: usize, b_u: usize, c_u: usize) -> Self {
+        let d = a.gcd(b);
+        Self {
+            a, b, c, d
+        }
+    }
+
+    fn has_soln(&self) -> bool {
+        
+    }
+
+
+    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize) -> HashSet<(usize, usize)> {
+        // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
+        // ax + by = c
+        let a = a_u as isize;
+        let b = b_u as isize;
+        let c = c_u as isize;
+        let mut solutions = HashSet::new();
+        let d = a_u.gcd(b_u) as isize;
+        if c.rem_euclid(d) == 0 {
+            let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
+            let min_m = -1 * c * y0 / a;
+            let max_m = c * x0 / b;
+            for m in min_m..(max_m + 1) {
+                let x = c * x0 / d - m * b / d;
+                let y = a * m / d + c * y0 / d;
+                if a * x + b * y == c {
+                    solutions.insert((x as usize, y as usize));
+                }
+            }
+        }
+        solutions
+    }
+
+    fn solve_linear_equation_any(a: isize, b: isize, c: isize) -> (isize, isize) {
+        let mut x = 0;
+        loop {
+            let y = (c - x * a) / b;
+            if (c - x * a).rem_euclid(b) == 0 {
+                return (x, y);
+            }
+            x += 1;
+        }
+    }
+
 }
