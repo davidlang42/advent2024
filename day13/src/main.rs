@@ -68,7 +68,7 @@ impl Pos {
 }
 
 impl Claw {
-    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize, min_x: usize, max_x: usize, min_y: usize, max_y: usize) -> HashSet<(usize, usize)> {
+    fn solve_linear_equation_all(a_u: usize, b_u: usize, c_u: usize) -> HashSet<(usize, usize)> {
         // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
         // ax + by = c
         let a = a_u as isize;
@@ -78,8 +78,8 @@ impl Claw {
         let d = a_u.gcd(b_u) as isize;
         if c.rem_euclid(d) == 0 {
             let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
-            let min_m = (c * x0 / b - max_x as isize * d / b).max(d * min_y as isize / a - c * y0 / a);
-            let max_m = (c * x0 / b - min_x as isize * d / b).min(d * max_y as isize / a - c * y0 / a);
+            let min_m = -1 * c * y0 / a;
+            let max_m = c * x0 / b;
             for m in min_m..(max_m + 1) {
                 let x = c * x0 / d - m * b / d;
                 let y = a * m / d + c * y0 / d;
@@ -89,27 +89,6 @@ impl Claw {
             }
         }
         solutions
-    }
-
-    fn solve_linear_equation_range(a_u: usize, b_u: usize, c_u: usize) -> Option<(usize, usize, usize, usize)> {
-        // https://math.libretexts.org/Courses/Mount_Royal_University/Higher_Arithmetic/5%3A_Diophantine_Equations/5.1%3A_Linear_Diophantine_Equations
-        // ax + by = c
-        let a = a_u as isize;
-        let b = b_u as isize;
-        let c = c_u as isize;
-        let d = a_u.gcd(b_u) as isize;
-        if c.rem_euclid(d) != 0 {
-            None
-        } else {
-            let (x0, y0) = Self::solve_linear_equation_any(a, b, d);
-            let min_m = -1 * c * y0 / a;
-            let max_m = c * x0 / b;
-            let min_x = c * x0 / d - max_m * b / d;
-            let max_x = c * x0 / d - min_m * b / d;
-            let min_y = a * min_m / d + c * y0 / d;
-            let max_y = a * max_m / d + c * y0 / d;
-            Some((min_x as usize, max_x as usize, min_y as usize, max_y as usize))
-        }
     }
 
     fn solve_linear_equation_any(a: isize, b: isize, c: isize) -> (isize, isize) {
@@ -124,30 +103,22 @@ impl Claw {
     }
 
     fn win(&self) -> Option<Presses> {
+        let row_solutions = Self::solve_linear_equation_all(self.a_delta.row, self.b_delta.row, self.target.row);
+        let column_solutions = Self::solve_linear_equation_all(self.a_delta.col, self.b_delta.col, self.target.col);
         let mut min_press: Option<Presses> = None;
-        if let Some((row_min_x, row_max_x, row_min_y, row_max_y)) = Self::solve_linear_equation_range(self.a_delta.row, self.b_delta.row, self.target.row) {
-            if let Some((col_min_x, col_max_x, col_min_y, col_max_y)) = Self::solve_linear_equation_range(self.a_delta.col, self.b_delta.col, self.target.col) {
-                let min_x = row_min_x.max(col_min_x);
-                let min_y = row_min_y.max(col_min_y);
-                let max_x = row_max_x.min(col_max_x);
-                let max_y = row_max_y.min(col_max_y);
-                let row_solutions = Self::solve_linear_equation_all(self.a_delta.row, self.b_delta.row, self.target.row, min_x, max_x, min_y, max_y);
-                let col_solutions = Self::solve_linear_equation_all(self.a_delta.row, self.b_delta.row, self.target.row, min_x, max_x, min_y, max_y);
-                for rs in row_solutions {
-                    if col_solutions.contains(&rs) {
-                        // found a way to win, keep track of cheapest
-                        let (a, b) = rs;
-                        let new = Presses {
-                            a, b
-                        };
-                        if let Some(existing) = &min_press {
-                            if new.cost() < existing.cost() {
-                                min_press = Some(new);
-                            }
-                        } else {
-                            min_press = Some(new);
-                        }
+        for rs in row_solutions {
+            if column_solutions.contains(&rs) {
+                // found a way to win, keep track of cheapest
+                let (a, b) = rs;
+                let new = Presses {
+                    a, b
+                };
+                if let Some(existing) = &min_press {
+                    if new.cost() < existing.cost() {
+                        min_press = Some(new);
                     }
+                } else {
+                    min_press = Some(new);
                 }
             }
         }
