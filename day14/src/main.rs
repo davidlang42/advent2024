@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::env;
 use std::str::FromStr;
@@ -15,7 +16,7 @@ struct Robot {
     velocity: Pos
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 struct Pos {
     row: isize,
     col: isize
@@ -125,6 +126,25 @@ impl Map {
     fn safety_factor(&self) -> usize {
         self.quadrants().iter().product()
     }
+
+    fn contains_line(&self, length: usize) -> bool {
+        let lookup: HashSet<Pos> = self.robots.iter().map(|r| r.position).collect();
+        for row in 0..self.size.row {
+            for col in 0..self.size.col {
+                let mut line = true;
+                for i in 0..length {
+                    if !lookup.contains(&Pos { row, col: col + i as isize }) {
+                        line = false;
+                        break;
+                    }
+                }
+                if line {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 fn main() {
@@ -135,11 +155,15 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let seconds: usize = args[2].parse().unwrap();
         let mut map: Map = text.parse().unwrap();
-        map.simulate(seconds);
+        for i in 0..seconds {
+            map.simulate(1);
+            if map.contains_line(20) {
+                println!("At seconds={}:", i + 1);
+                println!("{}", map);
+            }
+        }
         println!("Quadrants: {:?}", map.quadrants());
         println!("Safety factor: {}", map.safety_factor());
-        println!("");
-        println!("{}", map);
     } else {
         println!("Please provide 2 arguments: Filename, Seconds");
     }
