@@ -194,8 +194,18 @@ fn main() {
             }
         }
         println!("Answer: {}-{}", min, max);
+    } else if args.len() == 3 {
+        let filename = &args[1];
+        let text = fs::read_to_string(&filename)
+            .expect(&format!("Error reading from {}", filename));
+        let original: Computer = text.parse().unwrap();
+        let seed = args[2].parse().unwrap();
+        let pc = original.simulate_seed(seed);
+        println!("Seed {}:", seed);
+        println!("  output {:?}", pc.output);
+        println!("expected {:?}", pc.instructions);
     } else {
-        println!("Please provide 1 argument: Filename");
+        println!("Please provide 1/2 argument(s): Filename Seed");
     }
 }
 
