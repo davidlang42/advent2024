@@ -116,6 +116,18 @@ impl Computer {
         true
     }
 
+    fn number_of_outputs_matching_program_from_end(&self) -> usize {
+        let mut count = 0;
+        for i in (0..self.output.len()).rev() {
+            if self.output[i] == self.instructions[i] as usize {
+                count += 1;
+            } else {
+                break;
+            }
+        }
+        count
+    }
+
     fn simulate_seed(&self, initial_register_a: usize) -> Computer {
         let mut pc = self.clone();
         pc.register_a = initial_register_a;
@@ -167,16 +179,13 @@ fn main() {
         let mut max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
         println!("Max seed {} achieves output length {}", max, original.instructions.len());
         // iterate over the output numbers in reverse getting each place right in order
-        for i in (0..original.instructions.len()).rev() {
-            println!("Before {}: {}-{}", i, min, max);
-            let min_pc = original.simulate_seed(min);
-            if min_pc.output[i] != original.instructions[i] as usize {
-                min = bisect(&original, min, max, &|pc: &Computer| pc.output[i] == original.instructions[i] as usize);
-            }
-            let max_pc = original.simulate_seed(max + 1);
-            if max_pc.output[i] == original.instructions[i] as usize {
-                max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
-            }
+        for i in 1..(original.instructions.len() + 1) {
+            println!("Before #{}: MIN {:?}", i, original.simulate_seed(min));
+            min = bisect(&original, min, max, &|pc: &Computer| pc.number_of_outputs_matching_program_from_end() >= i);
+            println!("After  #{}: MIN {:?}", i, original.simulate_seed(min));
+            println!("Before #{}: MAX {:?}", i, original.simulate_seed(max));
+            max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
+            println!("After  #{}: MAX {:?}", i, original.simulate_seed(max));
             if min == max - 1 {
                 println!("Answer: {}", max);
             }
