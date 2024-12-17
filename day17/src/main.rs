@@ -144,7 +144,7 @@ fn main() {
         }
         println!("Output: {:?}", pc.output);
         // part2
-        let mut seed = 1;
+        let mut seed = 100000000000000; // to match number of digits of output required
         loop {
             pc = original.clone();
             pc.register_a = seed;
@@ -153,8 +153,15 @@ fn main() {
                     break;
                 }
             }
+            // if pc.output.len() < pc.instructions.len() {
+            //     println!("Seed {} generated {} out, needed {}, try starting with seed: {}", seed, pc.output.len(), pc.instructions.len(), seed* 10);
+            //     return;
+            // }
             if pc.output_matches_program_full() {
                 break;
+            }
+            if seed.rem_euclid(10000000) == 0 {
+                println!("{}", seed);
             }
             seed += 1;
         }
