@@ -104,8 +104,8 @@ impl Computer {
         }
     }
 
-    fn output_matches_program_start(&self) -> bool {
-        if self.output.len() > self.instructions.len() {
+    fn output_matches_program(&self) -> bool {
+        if self.output.len() != self.instructions.len() {
             return false;
         }
         for i in 0..self.output.len() {
@@ -116,16 +116,11 @@ impl Computer {
         true
     }
 
-    fn output_matches_program_full(&self) -> bool {
-        if self.output.len() != self.instructions.len() {
-            return false;
-        }
-        for i in 0..self.output.len() {
-            if self.output[i] != self.instructions[i] as usize {
-                return false;
-            }
-        }
-        true
+    fn simulate_seed(&self, initial_register_a: usize) -> Computer {
+        let mut pc = self.clone();
+        pc.register_a = initial_register_a;
+        while pc.run_next() { }
+        pc
     }
 }
 
@@ -144,29 +139,87 @@ fn main() {
         }
         println!("Output: {:?}", pc.output);
         // part2
-        let mut seed = 100000000000000; // to match number of digits of output required
+        let mut seed = 1;
+        // find any seed which gets the correct output length
         loop {
-            pc = original.clone();
-            pc.register_a = seed;
-            while pc.run_next() {
-                if !pc.output_matches_program_start() {
-                    break;
-                }
-            }
-            // if pc.output.len() < pc.instructions.len() {
-            //     println!("Seed {} generated {} out, needed {}, try starting with seed: {}", seed, pc.output.len(), pc.instructions.len(), seed* 10);
-            //     return;
-            // }
-            if pc.output_matches_program_full() {
+            let pc = original.simulate_seed(seed);
+            if pc.output.len() < original.instructions.len() {
+                seed *= 10;
+            } else {
                 break;
             }
-            if seed.rem_euclid(10000000) == 0 {
-                println!("{}", seed);
-            }
-            seed += 1;
         }
-        println!("Seed: {}", seed);
+        println!("Seed {} achieves output length {}", seed, original.instructions.len());
+        // find the min seed which gets correct output length
+        let mut min = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() == original.instructions.len());
+        println!("Min seed {} achieves output length {}", min, original.instructions.len());
+        // find any seed which gets too much output
+        loop {
+            let pc = original.simulate_seed(seed);
+            if pc.output.len() <= original.instructions.len() {
+                seed *= 10;
+            } else {
+                break;
+            }
+        }
+        println!("Seed {} gets output greater than {}", seed, original.instructions.len());
+        // find the max seed which gets correct output length
+        let mut max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
+        println!("Max seed {} achieves output length {}", max, original.instructions.len());
+        // iterate over the output numbers in reverse getting each place right in order
+        for i in (0..original.instructions.len()).rev() {
+            println!("Before {}: {}-{}", i, min, max);
+            let min_pc = original.simulate_seed(min);
+            if min_pc.output[i] != original.instructions[i] as usize {
+                min = bisect(&original, min, max, &|pc: &Computer| pc.output[i] == original.instructions[i] as usize);
+            }
+            let max_pc = original.simulate_seed(max + 1);
+            if max_pc.output[i] == original.instructions[i] as usize {
+                max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
+            }
+            if min == max - 1 {
+                println!("Answer: {}", max);
+            }
+            if min >= max {
+                panic!();
+            }
+        }
+        println!("Answer: {}-{}", min, max);
     } else {
         println!("Please provide 1 argument: Filename");
+    }
+}
+
+fn bisect(original: &Computer, mut min: usize, mut max: usize, condition: &dyn Fn(&Computer) -> bool) -> usize {
+    let min_pc = original.simulate_seed(min);
+    if condition(&min_pc) {
+        panic!("min already passed condition before we started");
+    }
+    let max_pc = original.simulate_seed(max);
+    if !condition(&max_pc) {
+        panic!("max didnt pass condition before we started");
+    }
+    loop {
+        let mid = (min + max) / 2;
+        let pc = original.simulate_seed(mid);
+        if condition(&pc) {
+            max = mid;
+        } else {
+            min = mid;
+        }
+        if min == max - 1 {
+            let min_pc = original.simulate_seed(min);
+            if condition(&min_pc) {
+                panic!("result failed");
+            }
+            let max_pc = original.simulate_seed(max);
+            if !condition(&max_pc) {
+                panic!("result failed");
+            }
+            return max;
+        }
+        if min >= max {
+            panic!();
+        }
     }
 }
