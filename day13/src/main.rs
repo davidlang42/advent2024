@@ -70,79 +70,13 @@ impl Pos {
 
 impl Claw {
     fn win(&self) -> Option<Presses> {
-        // let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
-        // let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
-        // let mut change = true;
-        // while change {
-        //     println!("Row x range: {:?}", row.x_range);
-        //     println!("Row y range: {:?}", row.y_range);
-        //     println!("Col x range: {:?}", col.x_range);
-        //     println!("Col y range: {:?}", col.y_range);
-        //     change = row.limit(&col.x_range, &col.y_range);
-        //     change = col.limit(&row.x_range, &row.y_range) || change;
-        // }
-        // let column_solutions = col.all();
-        // println!("All col soln: {:?}", col.all());
-        // let row_solutions = row.all();
-        // println!("All row soln: {:?}", row.all());
-        // let mut min_press: Option<Presses> = None;
-        // for rs in row_solutions {
-        //     if column_solutions.contains(&rs) {
-        //         // found a way to win, keep track of cheapest
-        //         let (a, b) = rs;
-        //         let new = Presses {
-        //             a, b
-        //         };
-        //         if let Some(existing) = &min_press {
-        //             if new.cost() < existing.cost() {
-        //                 min_press = Some(new);
-        //             }
-        //         } else {
-        //             min_press = Some(new);
-        //         }
-        //     }
-        // }
-        // min_press
-        println!("Look for win");
         let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
         let mut row_col = LinearEquation::new(self.a_delta.row + self.a_delta.col, self.b_delta.row + self.b_delta.col, self.target.row + self.target.col).solve()?;
-        // println!("x_range: {:?}", row_col.x_range);
-        // println!("y_range: {:?}", row_col.y_range);
-        // println!("Got soln");
         row_col.limit(&row.x_range, &row.y_range)?;
         row_col.limit(&col.x_range, &col.y_range)?;
-        // println!("x_range: {:?}", row_col.x_range);
-        // println!("y_range: {:?}", row_col.y_range);
-        // println!("limited");
-        // let reasonable = LinearRange { min: 0, max: 100000000 };
-        // row_col.limit(&reasonable, &reasonable);
-        // println!("x_range: {:?}", row_col.x_range);
-        // println!("y_range: {:?}", row_col.y_range);
-        // println!("artificial limit");
         let (a,b) = row_col.first_satifying(&row, &col)?;
-        return Some(Presses {a, b});
-        let all_solutions = row_col.all();
-        println!("found all: {}", all_solutions.len());
-        let mut min_press: Option<Presses> = None;
-        for (a, b) in all_solutions {
-            if row.is_solution(a as isize, b as isize) && col.is_solution(a as isize,b as isize) {
-                // found a way to win, keep track of cheapest
-                //println!("found one: {},{}", a,b);
-                let new = Presses {
-                    a, b
-                };
-                if let Some(existing) = &min_press {
-                    if new.cost() < existing.cost() {
-                        min_press = Some(new);
-                    }
-                } else {
-                    min_press = Some(new);
-                }
-            }
-        }
-        println!("returned: {:?}", min_press);
-        min_press
+        Some(Presses { a, b })
     }
 }
 
@@ -152,29 +86,31 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let claws: Vec<Claw> = text.split("\r\n\r\n").map(|s| s.parse().unwrap()).collect(); // "\n\n" on unix
+        let mut claws: Vec<Claw> = text.split("\r\n\r\n").map(|s| s.parse().unwrap()).collect(); // "\n\n" on unix
         println!("PART1");
         let mut part1 = 0;
-        for claw in &claws {
+        for c in 0..claws.len() {
+            let claw = &claws[c];
             if let Some(presses) = claw.win() {
                 let cost = presses.cost();
                 part1 += cost;
-                println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
+                println!("{}/{}: Press Ax{}, Bx{} = {} tokens", c + 1, claws.len(), presses.a, presses.b, cost);
             } else {
-                //println!("Can't be won");
+                println!("{}/{}: Can't be won", c + 1, claws.len());
             }
         }
         println!("Part1 tokens: {:?}", part1);
         println!("PART2");
         let mut part2 = 0;
-        for mut claw in claws {
+        for c in 0..claws.len() {
+            let claw = &mut claws[c];
             claw.target.add(&Pos { row: 10000000000000, col: 10000000000000 });
             if let Some(presses) = claw.win() {
                 let cost = presses.cost();
                 part2 += cost;
-                println!("Press Ax{}, Bx{} = {} tokens", presses.a, presses.b, cost);
+                println!("{}/{}: Press Ax{}, Bx{} = {} tokens", c + 1, claws.len(), presses.a, presses.b, cost);
             } else {
-                //println!("Can't be won");
+                println!("{}/{}: Can't be won", c + 1, claws.len());
             }
         }
         println!("RESULTS");
@@ -272,7 +208,7 @@ impl LinearSolution {
         Some(())
     }
 
-    fn all(&self) -> HashSet<(usize, usize)> {
+    fn _all(&self) -> HashSet<(usize, usize)> {
         let (min_m, max_m) = self.get_m_range();
         let mut solutions = HashSet::new();
         for m in min_m..(max_m + 1) {
