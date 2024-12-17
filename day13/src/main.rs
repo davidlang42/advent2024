@@ -110,11 +110,11 @@ impl Claw {
         println!("x_range: {:?}", row_col.x_range);
         println!("y_range: {:?}", row_col.y_range);
         println!("Got soln");
-        // row_col.limit(&row.x_range, &row.y_range);
-        // row_col.limit(&col.x_range, &col.y_range);
-        // println!("x_range: {:?}", row_col.x_range);
-        // println!("y_range: {:?}", row_col.y_range);
-        // println!("limited");
+        row_col.limit(&row.x_range, &row.y_range)?;
+        row_col.limit(&col.x_range, &col.y_range)?;
+        println!("x_range: {:?}", row_col.x_range);
+        println!("y_range: {:?}", row_col.y_range);
+        println!("limited");
         // let reasonable = LinearRange { min: 0, max: 100000000 };
         // row_col.limit(&reasonable, &reasonable);
         // println!("x_range: {:?}", row_col.x_range);
@@ -225,8 +225,6 @@ struct LinearSolution {
     y0: isize,
     x_range: LinearRange,
     y_range: LinearRange,
-    min_m: isize,
-    max_m: isize
 }
 
 impl LinearSolution {
@@ -250,50 +248,43 @@ impl LinearSolution {
                 let x_range = LinearRange::from(x1, x2);
                 let y_range = LinearRange::from(y1, y2);
                 return Self {
-                    a, b, c, d, x0, y0, x_range, y_range, min_m, max_m
+                    a, b, c, d, x0, y0, x_range, y_range
                 };
             }
             x0 += 1;
         }
     }
 
-    fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> bool {
-        let mut change = false;
-        if x.min > self.x_range.min {
-            self.x_range.min = x.min;
-            change = true;
-        }
-        if x.max < self.x_range.max {
-            self.x_range.max = x.max;//.max(self.x_range.min);
-            change = true;
-        }
-        if y.min > self.y_range.min {
-            self.y_range.min = y.min;
-            change = true;
-        }
-        if y.max < self.y_range.max {
-            self.y_range.max = y.max;//.max(self.y_range.min);
-            change = true;
-        }
+    fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> Option<()> {
+        self.x_range = self.x_range.overlap(x)?;
+        self.y_range = self.y_range.overlap(y)?;
+        // if x.min > self.x_range.min {
+        //     self.x_range.min = x.min;
+        //     change = true;
+        // }
+        // if x.max < self.x_range.max {
+        //     self.x_range.max = x.max;//.max(self.x_range.min);
+        //     change = true;
+        // }
+        // if y.min > self.y_range.min {
+        //     self.y_range.min = y.min;
+        //     change = true;
+        // }
+        // if y.max < self.y_range.max {
+        //     self.y_range.max = y.max;//.max(self.y_range.min);
+        //     change = true;
+        // }
         if self.x_range.min > self.x_range.max {
             panic!("x min > max");
         }
         if self.y_range.min > self.y_range.max {
             panic!("y min > max");
         }
-        change
+        Some(())
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
-        //WORKS: let (min_m, max_m) = (self.min_m, self.max_m);
-        //FAILS: let (min_m, max_m) = self.get_m_range();
         let (min_m, max_m) = self.get_m_range();
-        if min_m != self.min_m {
-            panic!("min_m got {} expected {}", min_m, self.min_m);
-        }
-        if max_m != self.max_m {
-            panic!("max_m got {} expected {}", max_m, self.max_m);
-        }
         let mut solutions = HashSet::new();
         println!("Searching for all between m={}-{} (range {})", min_m, max_m, max_m - min_m + 1);
         for m in min_m..(max_m + 1) {
@@ -350,5 +341,29 @@ impl LinearRange {
                 max: b
             }
         }
+    }
+
+    fn overlap(&self, other: &Self) -> Option<Self> {
+        let a1 = self.min;
+        let b1 = self.max;
+        let a2 = other.min;
+        let b2 = other.max;
+        let result = if a2 <= a1 && b2 >= b1 {
+            Some(*self)
+        } else if a2 >= a1 && b2 <= b1 {
+            Some(*other)
+        } else if a2 < a1 && b2 < a1 {
+            None
+        } else if a2 > b1 && b2 > b1 {
+            None
+        } else if a2 <= a1 && b2 >= a1 {
+            Some(Self { min: a1, max: b2 })
+        } else if a2 <= b1 && b2 >= b1 {
+            Some(Self { min: a2, max: b1 })
+        } else {
+            panic!();
+        };
+        println!("{:?} overlapping {:?} = {:?}", self, other, result);
+        result
     }
 }
