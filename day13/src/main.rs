@@ -17,14 +17,15 @@ struct Pos {
     col: usize
 }
 
+#[derive(Debug)]
 struct Presses {
     a: usize,
     b: usize
 }
 
 impl Presses {
-    fn cost(&self) -> usize {
-        3 * self.a + self.b
+    fn cost(&self) -> u128 {
+        3 * self.a as u128 + self.b as u128
     }
 }
 
@@ -69,27 +70,63 @@ impl Pos {
 
 impl Claw {
     fn win(&self) -> Option<Presses> {
-        let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
-        let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
-        let mut change = true;
-        while change {
-            println!("Row x range: {:?}", row.x_range);
-            println!("Row y range: {:?}", row.y_range);
-            println!("Col x range: {:?}", col.x_range);
-            println!("Col y range: {:?}", col.y_range);
-            change = row.limit(&col.x_range, &col.y_range);
-            change = col.limit(&row.x_range, &row.y_range) || change;
-        }
-        let column_solutions = col.all();
-        println!("All col soln: {:?}", col.all());
-        let row_solutions = row.all();
-        println!("All row soln: {:?}", row.all());
-        
+        // let mut row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
+        // let mut col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
+        // let mut change = true;
+        // while change {
+        //     println!("Row x range: {:?}", row.x_range);
+        //     println!("Row y range: {:?}", row.y_range);
+        //     println!("Col x range: {:?}", col.x_range);
+        //     println!("Col y range: {:?}", col.y_range);
+        //     change = row.limit(&col.x_range, &col.y_range);
+        //     change = col.limit(&row.x_range, &row.y_range) || change;
+        // }
+        // let column_solutions = col.all();
+        // println!("All col soln: {:?}", col.all());
+        // let row_solutions = row.all();
+        // println!("All row soln: {:?}", row.all());
+        // let mut min_press: Option<Presses> = None;
+        // for rs in row_solutions {
+        //     if column_solutions.contains(&rs) {
+        //         // found a way to win, keep track of cheapest
+        //         let (a, b) = rs;
+        //         let new = Presses {
+        //             a, b
+        //         };
+        //         if let Some(existing) = &min_press {
+        //             if new.cost() < existing.cost() {
+        //                 min_press = Some(new);
+        //             }
+        //         } else {
+        //             min_press = Some(new);
+        //         }
+        //     }
+        // }
+        // min_press
+        println!("Look for win");
+        let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
+        let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
+        let mut row_col = LinearEquation::new(self.a_delta.row + self.a_delta.col, self.b_delta.row + self.b_delta.col, self.target.row + self.target.col).solve()?;
+        println!("x_range: {:?}", row_col.x_range);
+        println!("y_range: {:?}", row_col.y_range);
+        println!("Got soln");
+        // row_col.limit(&row.x_range, &row.y_range);
+        // row_col.limit(&col.x_range, &col.y_range);
+        // println!("x_range: {:?}", row_col.x_range);
+        // println!("y_range: {:?}", row_col.y_range);
+        // println!("limited");
+        // let reasonable = LinearRange { min: 0, max: 100000000 };
+        // row_col.limit(&reasonable, &reasonable);
+        // println!("x_range: {:?}", row_col.x_range);
+        // println!("y_range: {:?}", row_col.y_range);
+        // println!("artificial limit");
+        let all_solutions = row_col.all();
+        println!("found all: {}", all_solutions.len());
         let mut min_press: Option<Presses> = None;
-        for rs in row_solutions {
-            if column_solutions.contains(&rs) {
+        for (a, b) in all_solutions {
+            if row.is_solution(a as isize, b as isize) && col.is_solution(a as isize,b as isize) {
                 // found a way to win, keep track of cheapest
-                let (a, b) = rs;
+                //println!("found one: {},{}", a,b);
                 let new = Presses {
                     a, b
                 };
@@ -102,6 +139,7 @@ impl Claw {
                 }
             }
         }
+        println!("returned: {:?}", min_press);
         min_press
     }
 }
@@ -125,6 +163,7 @@ fn main() {
             }
         }
         println!("Part1 tokens: {:?}", part1);
+        return;
         println!("PART2");
         let mut part2 = 0;
         for mut claw in claws {
@@ -185,7 +224,9 @@ struct LinearSolution {
     x0: isize,
     y0: isize,
     x_range: LinearRange,
-    y_range: LinearRange
+    y_range: LinearRange,
+    min_m: isize,
+    max_m: isize
 }
 
 impl LinearSolution {
@@ -201,7 +242,7 @@ impl LinearSolution {
             if numerator.rem_euclid(denominator) == 0 {
                 let y0 = numerator / denominator;
                 let min_m = -1 * c * y0 / a;
-                let max_m = c * x0 / b;
+                let max_m = c * x0 / b + 1;
                 let x1 = c * x0 / d - min_m * b / d;
                 let x2 = c * x0 / d - max_m * b / d;
                 let y1 = a * min_m / d + c * y0 / d;
@@ -209,7 +250,7 @@ impl LinearSolution {
                 let x_range = LinearRange::from(x1 as usize, x2 as usize);
                 let y_range = LinearRange::from(y1 as usize, y2 as usize);
                 return Self {
-                    a, b, c, d, x0, y0, x_range, y_range
+                    a, b, c, d, x0, y0, x_range, y_range, min_m, max_m
                 };
             }
             x0 += 1;
@@ -223,7 +264,7 @@ impl LinearSolution {
             change = true;
         }
         if x.max < self.x_range.max {
-            self.x_range.max = x.max;
+            self.x_range.max = x.max;//.max(self.x_range.min);
             change = true;
         }
         if y.min > self.y_range.min {
@@ -231,23 +272,34 @@ impl LinearSolution {
             change = true;
         }
         if y.max < self.y_range.max {
-            self.y_range.max = y.max;
+            self.y_range.max = y.max;//.max(self.y_range.min);
             change = true;
+        }
+        if self.x_range.min > self.x_range.max {
+            panic!("x min > max");
+        }
+        if self.y_range.min > self.y_range.max {
+            panic!("y min > max");
         }
         change
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
-        let (min_m, max_m) = self.get_m_range();
+        let (min_m, max_m) = (self.min_m, self.max_m);
         let mut solutions = HashSet::new();
+        println!("Searching for all between m={}-{} (range {})", min_m, max_m, max_m - min_m + 1);
         for m in min_m..(max_m + 1) {
             let x = self.c * self.x0 / self.d - m * self.b / self.d;
             let y = self.a * m / self.d + self.c * self.y0 / self.d;
-            if self.a * x + self.b * y == self.c {
+            if self.is_solution(x, y) {
                 solutions.insert((x as usize, y as usize));
             }
         }
         solutions
+    }
+
+    fn is_solution(&self, x: isize, y: isize) -> bool {
+        self.a * x + self.b * y == self.c
     }
 
     fn get_m_range(&self) -> (isize, isize) {
