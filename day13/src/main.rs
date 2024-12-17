@@ -107,14 +107,14 @@ impl Claw {
         let row = LinearEquation::new(self.a_delta.row, self.b_delta.row, self.target.row).solve()?;
         let col = LinearEquation::new(self.a_delta.col, self.b_delta.col, self.target.col).solve()?;
         let mut row_col = LinearEquation::new(self.a_delta.row + self.a_delta.col, self.b_delta.row + self.b_delta.col, self.target.row + self.target.col).solve()?;
-        println!("x_range: {:?}", row_col.x_range);
-        println!("y_range: {:?}", row_col.y_range);
-        println!("Got soln");
+        // println!("x_range: {:?}", row_col.x_range);
+        // println!("y_range: {:?}", row_col.y_range);
+        // println!("Got soln");
         row_col.limit(&row.x_range, &row.y_range)?;
         row_col.limit(&col.x_range, &col.y_range)?;
-        println!("x_range: {:?}", row_col.x_range);
-        println!("y_range: {:?}", row_col.y_range);
-        println!("limited");
+        // println!("x_range: {:?}", row_col.x_range);
+        // println!("y_range: {:?}", row_col.y_range);
+        // println!("limited");
         // let reasonable = LinearRange { min: 0, max: 100000000 };
         // row_col.limit(&reasonable, &reasonable);
         // println!("x_range: {:?}", row_col.x_range);
@@ -208,7 +208,17 @@ impl LinearEquation {
 
     fn solve(&self) -> Option<LinearSolution> {
         if self.has_soln() {
-            Some(LinearSolution::from(self))
+            let mut soln = LinearSolution::from(self);
+            let x = LinearRange {
+                min: 0.0,
+                max: self.c as f64 / self.a as f64
+            };
+            let y = LinearRange {
+                min: 0.0,
+                max: self.c as f64 / self.b as f64
+            };
+            soln.limit(&x, &y)?;
+            Some(soln)
         } else {
             None
         }
@@ -258,35 +268,12 @@ impl LinearSolution {
     fn limit(&mut self, x: &LinearRange, y: &LinearRange) -> Option<()> {
         self.x_range = self.x_range.overlap(x)?;
         self.y_range = self.y_range.overlap(y)?;
-        // if x.min > self.x_range.min {
-        //     self.x_range.min = x.min;
-        //     change = true;
-        // }
-        // if x.max < self.x_range.max {
-        //     self.x_range.max = x.max;//.max(self.x_range.min);
-        //     change = true;
-        // }
-        // if y.min > self.y_range.min {
-        //     self.y_range.min = y.min;
-        //     change = true;
-        // }
-        // if y.max < self.y_range.max {
-        //     self.y_range.max = y.max;//.max(self.y_range.min);
-        //     change = true;
-        // }
-        if self.x_range.min > self.x_range.max {
-            panic!("x min > max");
-        }
-        if self.y_range.min > self.y_range.max {
-            panic!("y min > max");
-        }
         Some(())
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
         let (min_m, max_m) = self.get_m_range();
         let mut solutions = HashSet::new();
-        println!("Searching for all between m={}-{} (range {})", min_m, max_m, max_m - min_m + 1);
         for m in min_m..(max_m + 1) {
             let x = self.c * self.x0 / self.d - m * self.b / self.d;
             let y = self.a * m / self.d + self.c * self.y0 / self.d;
@@ -318,7 +305,7 @@ impl LinearSolution {
         };
         let min_m = m_min_x.max(m_min_y);
         let max_m = m_max_x.min(m_max_y);
-        (min_m.floor() as isize, max_m.ceil() as isize)
+        (min_m.ceil() as isize, max_m.floor() as isize)
     }
 }
 
@@ -348,7 +335,7 @@ impl LinearRange {
         let b1 = self.max;
         let a2 = other.min;
         let b2 = other.max;
-        let result = if a2 <= a1 && b2 >= b1 {
+        if a2 <= a1 && b2 >= b1 {
             Some(*self)
         } else if a2 >= a1 && b2 <= b1 {
             Some(*other)
@@ -361,9 +348,7 @@ impl LinearRange {
         } else if a2 <= b1 && b2 >= b1 {
             Some(Self { min: a2, max: b1 })
         } else {
-            panic!();
-        };
-        println!("{:?} overlapping {:?} = {:?}", self, other, result);
-        result
+            panic!()
+        }
     }
 }
