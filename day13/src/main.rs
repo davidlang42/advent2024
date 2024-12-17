@@ -120,6 +120,8 @@ impl Claw {
         // println!("x_range: {:?}", row_col.x_range);
         // println!("y_range: {:?}", row_col.y_range);
         // println!("artificial limit");
+        let (a,b) = row_col.first_satifying(&row, &col)?;
+        return Some(Presses {a, b});
         let all_solutions = row_col.all();
         println!("found all: {}", all_solutions.len());
         let mut min_press: Option<Presses> = None;
@@ -163,7 +165,6 @@ fn main() {
             }
         }
         println!("Part1 tokens: {:?}", part1);
-        return;
         println!("PART2");
         let mut part2 = 0;
         for mut claw in claws {
@@ -282,6 +283,18 @@ impl LinearSolution {
             }
         }
         solutions
+    }
+
+    fn first_satifying(&self, other1: &LinearSolution, other2: &LinearSolution) -> Option<(usize, usize)> {
+        let (min_m, max_m) = self.get_m_range();
+        for m in min_m..(max_m + 1) {
+            let x = self.c * self.x0 / self.d - m * self.b / self.d;
+            let y = self.a * m / self.d + self.c * self.y0 / self.d;
+            if other1.is_solution(x, y) && other2.is_solution(x, y) {
+                return Some((x as usize, y as usize));
+            }
+        }
+        None
     }
 
     fn is_solution(&self, x: isize, y: isize) -> bool {
