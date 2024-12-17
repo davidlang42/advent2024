@@ -243,12 +243,12 @@ impl LinearSolution {
                 let y0 = numerator / denominator;
                 let min_m = -1 * c * y0 / a;
                 let max_m = c * x0 / b;
-                let x1 = c * x0 / d - min_m * b / d;
-                let x2 = c * x0 / d - max_m * b / d;
-                let y1 = a * min_m / d + c * y0 / d;
-                let y2 = a * max_m / d + c * y0 / d;
-                let x_range = LinearRange::from(x1 as usize, x2 as usize);
-                let y_range = LinearRange::from(y1 as usize, y2 as usize);
+                let x1 = c as f64 * x0 as f64 / d as f64 - min_m as f64 * b as f64 / d as f64;
+                let x2 = c as f64 * x0 as f64 / d as f64 - max_m as f64 * b as f64 / d as f64;
+                let y1 = a as f64 * min_m as f64 / d as f64 + c as f64 * y0 as f64 / d as f64;
+                let y2 = a as f64 * max_m as f64 / d as f64 + c as f64 * y0 as f64 / d as f64;
+                let x_range = LinearRange::from(x1, x2);
+                let y_range = LinearRange::from(y1, y2);
                 return Self {
                     a, b, c, d, x0, y0, x_range, y_range, min_m, max_m
                 };
@@ -311,15 +311,15 @@ impl LinearSolution {
     }
 
     fn get_m_range(&self) -> (isize, isize) {
-        let m_x1 = self.c * self.x0 / self.b - self.x_range.min as isize * self.d / self.b;
-        let m_x2 = self.c * self.x0 / self.b - self.x_range.max as isize * self.d / self.b;
+        let m_x1 = self.c as f64 * self.x0 as f64 / self.b as f64 - self.x_range.min * self.d as f64 / self.b as f64;
+        let m_x2 = self.c as f64 * self.x0 as f64 / self.b as f64 - self.x_range.max * self.d as f64 / self.b as f64;
         let (m_min_x, m_max_x) = if m_x1 > m_x2 {
             (m_x2, m_x1)
         } else {
             (m_x1, m_x2)
         };
-        let m_y1 = self.y_range.min as isize * self.d / self.a - self.c * self.y0 / self.a;
-        let m_y2 = self.y_range.max as isize * self.d / self.a - self.c * self.y0 / self.a;
+        let m_y1 = self.y_range.min * self.d as f64 / self.a as f64 - self.c as f64 * self.y0 as f64 / self.a as f64;
+        let m_y2 = self.y_range.max * self.d as f64 / self.a as f64 - self.c as f64 * self.y0 as f64 / self.a as f64;
         let (m_min_y, m_max_y) = if m_y1 > m_y2 {
             (m_y2, m_y1)
         } else {
@@ -327,18 +327,18 @@ impl LinearSolution {
         };
         let min_m = m_min_x.max(m_min_y);
         let max_m = m_max_x.min(m_max_y);
-        (min_m, max_m)
+        (min_m.floor() as isize, max_m.ceil() as isize)
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 struct LinearRange {
-    min: usize,
-    max: usize
+    min: f64,
+    max: f64
 }
 
 impl LinearRange {
-    fn from(a: usize, b: usize) -> Self {
+    fn from(a: f64, b: f64) -> Self {
         if a > b {
             Self {
                 min: b,
