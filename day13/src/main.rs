@@ -242,7 +242,7 @@ impl LinearSolution {
             if numerator.rem_euclid(denominator) == 0 {
                 let y0 = numerator / denominator;
                 let min_m = -1 * c * y0 / a;
-                let max_m = c * x0 / b + 1;
+                let max_m = c * x0 / b;
                 let x1 = c * x0 / d - min_m * b / d;
                 let x2 = c * x0 / d - max_m * b / d;
                 let y1 = a * min_m / d + c * y0 / d;
@@ -285,7 +285,15 @@ impl LinearSolution {
     }
 
     fn all(&self) -> HashSet<(usize, usize)> {
-        let (min_m, max_m) = (self.min_m, self.max_m);
+        //WORKS: let (min_m, max_m) = (self.min_m, self.max_m);
+        //FAILS: let (min_m, max_m) = self.get_m_range();
+        let (min_m, max_m) = self.get_m_range();
+        if min_m != self.min_m {
+            panic!("min_m got {} expected {}", min_m, self.min_m);
+        }
+        if max_m != self.max_m {
+            panic!("max_m got {} expected {}", max_m, self.max_m);
+        }
         let mut solutions = HashSet::new();
         println!("Searching for all between m={}-{} (range {})", min_m, max_m, max_m - min_m + 1);
         for m in min_m..(max_m + 1) {
@@ -303,19 +311,19 @@ impl LinearSolution {
     }
 
     fn get_m_range(&self) -> (isize, isize) {
-        let m_x1 = self.c * self.x0 / self.b - self.y_range.min as isize * self.d / self.b;
-        let m_x2 = self.c * self.x0 / self.b - self.y_range.max as isize * self.d / self.b;
+        let m_x1 = self.c * self.x0 / self.b - self.x_range.min as isize * self.d / self.b;
+        let m_x2 = self.c * self.x0 / self.b - self.x_range.max as isize * self.d / self.b;
         let (m_min_x, m_max_x) = if m_x1 > m_x2 {
-            (m_x2, m_x1 + 1)
+            (m_x2, m_x1)
         } else {
-            (m_x1, m_x2 + 1)
+            (m_x1, m_x2)
         };
         let m_y1 = self.y_range.min as isize * self.d / self.a - self.c * self.y0 / self.a;
         let m_y2 = self.y_range.max as isize * self.d / self.a - self.c * self.y0 / self.a;
         let (m_min_y, m_max_y) = if m_y1 > m_y2 {
-            (m_y2, m_y1 + 1)
+            (m_y2, m_y1)
         } else {
-            (m_y1, m_y2 + 1)
+            (m_y1, m_y2)
         };
         let min_m = m_min_x.max(m_min_y);
         let max_m = m_max_x.min(m_max_y);
