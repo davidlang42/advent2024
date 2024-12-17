@@ -2,7 +2,7 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Computer {
     instructions: Vec<u8>,
     pointer: usize,
@@ -103,6 +103,30 @@ impl Computer {
             panic!("Invalid combo operand")
         }
     }
+
+    fn output_matches_program_start(&self) -> bool {
+        if self.output.len() > self.instructions.len() {
+            return false;
+        }
+        for i in 0..self.output.len() {
+            if self.output[i] != self.instructions[i] as usize {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn output_matches_program_full(&self) -> bool {
+        if self.output.len() != self.instructions.len() {
+            return false;
+        }
+        for i in 0..self.output.len() {
+            if self.output[i] != self.instructions[i] as usize {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 fn main() {
@@ -111,12 +135,30 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let mut pc: Computer = text.parse().unwrap();
+        let original: Computer = text.parse().unwrap();
+        // part1
+        let mut pc = original.clone();
         println!("{:?}", pc);
         while pc.run_next() {
             println!("{:?}", pc);
         }
         println!("Output: {:?}", pc.output);
+        // part2
+        let mut seed = 1;
+        loop {
+            pc = original.clone();
+            pc.register_a = seed;
+            while pc.run_next() {
+                if !pc.output_matches_program_start() {
+                    break;
+                }
+            }
+            if pc.output_matches_program_full() {
+                break;
+            }
+            seed += 1;
+        }
+        println!("Seed: {}", seed);
     } else {
         println!("Please provide 1 argument: Filename");
     }
