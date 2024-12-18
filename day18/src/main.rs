@@ -122,6 +122,7 @@ fn main() {
         let bytes: Vec<Pos> = text.lines().map(|s| s.parse().unwrap()).collect();
         let size = bytes.iter().map(|b| b.row).max().unwrap().max(bytes.iter().map(|b| b.col).max().unwrap()) + 1;
         let mut m = Memory::new(size); // 7 for test, 71 for input
+        //part1
         let bytes_to_sim = if size < 10 {
             12 //test
         } else {
@@ -144,7 +145,18 @@ fn main() {
         };
         let result = bfs(&start, |p| m.available_adjacent_to(p), |p| *p == end);
         println!("{}", m);
-        println!("Answer: {}", result.expect("no path found").len() - 1);
+        println!("Part1: {}", result.expect("no path found").len() - 1);
+        //part2
+        m = Memory::new(size);
+        for byte in bytes {
+            m.corrupt(&byte);
+            if bfs(&start, |p| m.available_adjacent_to(p), |p| *p == end).is_none() {
+                // this is the first byte that blocked it
+                println!("part2: {:?} (remember to reverse into (col, row) for answer)", byte);
+                return;
+            }
+        }
+        println!("sim'd all bytes")
     } else {
         println!("Please provide 1 argument: Filename");
     }
