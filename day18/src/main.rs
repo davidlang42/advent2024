@@ -120,8 +120,14 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let bytes: Vec<Pos> = text.lines().map(|s| s.parse().unwrap()).collect();
-        let mut m = Memory::new(71); // 7 for test
-        for i in 0..1024 { // 12 for test
+        let size = bytes.iter().map(|b| b.row).max().unwrap().max(bytes.iter().map(|b| b.col).max().unwrap()) + 1;
+        let mut m = Memory::new(size); // 7 for test, 71 for input
+        let bytes_to_sim = if size < 10 {
+            12 //test
+        } else {
+            1024 // not test
+        };
+        for i in 0..bytes_to_sim {
             if i == bytes.len() {
                 println!("Ran out of bytes");
                 break;
