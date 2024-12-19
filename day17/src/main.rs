@@ -1,6 +1,7 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 struct Computer {
@@ -179,13 +180,18 @@ fn main() {
         let max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
         println!("Max seed {} achieves output length {}", max, original.instructions.len());
         // try all
+        let mut last = Instant::now();
+        let delta_seed = 100000000;
         for seed in min..(max+1) {
             if simulate_fast_output_matches_program(seed, &original.instructions) {
                 println!("Answer: {}", seed);
                 break;
             }
-            if seed.rem_euclid(100000000) == 0 {
-                println!("{}", seed);
+            if seed.rem_euclid(delta_seed) == 0 {
+                let delta_ms = last.elapsed().as_millis();
+                last = Instant::now();
+                let remaining_secs = (max - seed)/delta_seed*delta_ms as usize/1000;
+                println!("{} ({}ms, remaining {}s)", seed, delta_ms, remaining_secs);
             }
         }
 
