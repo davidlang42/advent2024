@@ -1,7 +1,6 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
-use std::time::Instant;
 
 #[derive(Debug, Clone)]
 struct Computer {
@@ -105,28 +104,12 @@ impl Computer {
         }
     }
 
-    fn output_matches_program(&self) -> bool {
-        if self.output.len() != self.instructions.len() {
-            return false;
-        }
-        for i in 0..self.output.len() {
-            if self.output[i] != self.instructions[i] as usize {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn number_of_outputs_matching_program_from_end(&self) -> usize {
-        let mut count = 0;
-        for i in (0..self.output.len()).rev() {
-            if self.output[i] == self.instructions[i] as usize {
-                count += 1;
-            } else {
-                break;
-            }
-        }
-        count
+    fn reset(&mut self, register_a: usize) {
+        self.pointer = 0;
+        self.register_a = register_a;
+        self.register_b = 0;
+        self.register_c = 0;
+        self.output.clear();
     }
 
     fn simulate_seed(&self, initial_register_a: usize) -> Computer {
@@ -148,69 +131,37 @@ fn main() {
         let mut pc = original.clone();
         println!("{:?}", pc);
         while pc.run_next() {
-            println!("{:?}", pc);
+            //println!("{:?}", pc);
         }
-        println!("Output: {:?}", pc.output);
+        println!("Part1: {:?}", pc.output);
         // part2
-        let mut seed = 1;
-        // find any seed which gets the correct output length
-        loop {
-            let pc = original.simulate_seed(seed);
-            if pc.output.len() < original.instructions.len() {
-                seed *= 10;
-            } else {
-                break;
+        let mut pc = original;
+        let mut solutions = Vec::new();
+        for seed in 0..1024 {
+            pc.reset(seed);
+            while pc.run_next() { }
+            if pc.output[0] == pc.instructions[0] as usize {
+                solutions.push(seed);
             }
         }
-        println!("Seed {} achieves output length {}", seed, original.instructions.len());
-        // find the min seed which gets correct output length
-        let min = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() == original.instructions.len());
-        println!("Min seed {} achieves output length {}", min, original.instructions.len());
-        // find any seed which gets too much output
-        loop {
-            let pc = original.simulate_seed(seed);
-            if pc.output.len() <= original.instructions.len() {
-                seed *= 10;
-            } else {
-                break;
+        let mut magntiude = 1024;
+        for i in 1..pc.instructions.len() {
+            let mut new_solutions = Vec::new();
+            for x in 0..8 {
+                for soln in &solutions {
+                    let seed = soln + magntiude * x;
+                    pc.reset(seed);
+                    while pc.run_next() { }
+                    if pc.output.len() > i && pc.output[i] == pc.instructions[i] as usize {
+                        new_solutions.push(seed);
+                    }
+                }
             }
+            solutions = new_solutions;
+            magntiude *= 8;
+            //println!("At i={}, {} solutions", i, solutions.len());
         }
-        println!("Seed {} gets output greater than {}", seed, original.instructions.len());
-        // find the max seed which gets correct output length
-        let max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
-        println!("Max seed {} achieves output length {}", max, original.instructions.len());
-        // try all
-        let mut last = Instant::now();
-        let delta_seed = 100000000;
-        for seed in min..(max+1) {
-            if simulate_fast_output_matches_program(seed, &original.instructions) {
-                println!("Answer: {}", seed);
-                break;
-            }
-            if seed.rem_euclid(delta_seed) == 0 {
-                let delta_ms = last.elapsed().as_millis();
-                last = Instant::now();
-                let remaining_secs = (max - seed)/delta_seed*delta_ms as usize/1000;
-                println!("{} ({}ms, remaining {}s)", seed, delta_ms, remaining_secs);
-            }
-        }
-
-        // // iterate over the output numbers in reverse getting each place right in order
-        // for i in 1..(original.instructions.len() + 1) {
-        //     println!("Before #{}: MIN {:?}", i, original.simulate_seed(min));
-        //     min = bisect(&original, min, max, &|pc: &Computer| pc.number_of_outputs_matching_program_from_end() >= i);
-        //     println!("After  #{}: MIN {:?}", i, original.simulate_seed(min));
-        //     println!("Before #{}: MAX {:?}", i, original.simulate_seed(max));
-        //     max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
-        //     println!("After  #{}: MAX {:?}", i, original.simulate_seed(max));
-        //     if min == max - 1 {
-        //         println!("Answer: {}", max);
-        //     }
-        //     if min >= max {
-        //         panic!();
-        //     }
-        // }
-        // println!("Answer: {}-{}", min, max);
+        println!("Part2: {} solutions, min {}", solutions.len(), solutions.iter().min().unwrap());
     } else if args.len() == 3 {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
@@ -223,73 +174,5 @@ fn main() {
         println!("expected {:?}", pc.instructions);
     } else {
         println!("Please provide 1/2 argument(s): Filename Seed");
-    }
-}
-
-// hard-coded to my input
-fn simulate_fast_output_matches_program(mut a: usize, expecting_output: &Vec<u8>) -> bool {
-    let mut b;
-    let mut o = 0;
-    while a != 0 {
-        b = a.rem_euclid(8);
-        b ^= 6;
-        b ^= a / power_of_2(b) ^ 4;
-        if expecting_output[o] != b.rem_euclid(8) as u8 {
-            return false; // outputted wrong thing
-        }
-        o += 1;
-        if o == expecting_output.len() {
-            return false; // outputted too much
-        }
-        a /= 8;
-    }
-    true
-}
-
-fn power_of_2(exp: usize) -> usize {
-    match exp {
-        0 => 1,
-        1 => 2,
-        2 => 4,
-        3 => 8,
-        4 => 16,
-        5 => 32,
-        6 => 64,
-        7 => 128,
-        _ => panic!()
-    }
-}
-
-fn bisect(original: &Computer, mut min: usize, mut max: usize, condition: &dyn Fn(&Computer) -> bool) -> usize {
-    let min_pc = original.simulate_seed(min);
-    if condition(&min_pc) {
-        panic!("min already passed condition before we started");
-    }
-    let max_pc = original.simulate_seed(max);
-    if !condition(&max_pc) {
-        panic!("max didnt pass condition before we started");
-    }
-    loop {
-        let mid = (min + max) / 2;
-        let pc = original.simulate_seed(mid);
-        if condition(&pc) {
-            max = mid;
-        } else {
-            min = mid;
-        }
-        if min == max - 1 {
-            let min_pc = original.simulate_seed(min);
-            if condition(&min_pc) {
-                panic!("result failed");
-            }
-            let max_pc = original.simulate_seed(max);
-            if !condition(&max_pc) {
-                panic!("result failed");
-            }
-            return max;
-        }
-        if min >= max {
-            panic!();
-        }
     }
 }
