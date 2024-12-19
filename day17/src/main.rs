@@ -232,7 +232,8 @@ fn simulate_fast_output_matches_program(mut a: usize, expecting_output: &Vec<u8>
     let mut o = 0;
     while a != 0 {
         b = a.rem_euclid(8);
-        b ^= a / power_of_2(b) ^ 2;
+        b ^= 6;
+        b ^= a / power_of_2(b) ^ 4;
         if expecting_output[o] != b as u8 {
             return false; // outputted wrong thing
         }
