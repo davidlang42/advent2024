@@ -1,6 +1,5 @@
 use std::fs;
 use std::env;
-use std::str::FromStr;
 
 // enum Color {
 //     White,
@@ -69,5 +68,13 @@ fn main() {
 }
 
 fn can_be_made_from(target: &str, available: &Vec<&str>) -> bool {
-    todo!()
+    for a in available {
+        if target.starts_with(a) {
+            let remaining = &target[a.len()..target.len()];
+            if remaining.len() == 0 || can_be_made_from(remaining, available) {
+                return true;
+            }
+        }
+    }
+    false
 }
