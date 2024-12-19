@@ -135,11 +135,14 @@ impl Computer {
         pc
     }
 
-    fn simulate_fast_output_matches_program(&self, initial_register_a: usize) -> bool {
-        let mut pc = self.clone();
-        pc.register_a = initial_register_a;
-        while pc.run_next() {
-            if pc.output.len() > self.instructions.len() {
+    fn simulate_fast_output_matches_program(&mut self, initial_register_a: usize) -> bool {
+        self.register_a = initial_register_a;
+        self.register_b = 0;
+        self.register_c = 0;
+        self.pointer = 0;
+        self.output.clear();
+        while self.run_next() {
+            if self.output.len() > self.instructions.len() {
                 return false;
             }
             for i in 0..self.output.len() {
@@ -148,7 +151,7 @@ impl Computer {
                 }
             }
         }
-        pc.output_matches_program()
+        self.output_matches_program()
     }
 }
 
@@ -158,7 +161,7 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let original: Computer = text.parse().unwrap();
+        let mut original: Computer = text.parse().unwrap();
         // part1
         let mut pc = original.clone();
         println!("{:?}", pc);
@@ -200,7 +203,7 @@ fn main() {
                 println!("Answer: {}", seed);
                 break;
             }
-            if seed.rem_euclid(1000000) == 0 {
+            if seed.rem_euclid(10000000) == 0 {
                 println!("{}", seed);
             }
         }
