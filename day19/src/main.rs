@@ -38,6 +38,12 @@ impl FromStr for Towel {
     }
 }
 
+impl Towel {
+    fn can_be_made_from(&self, subs: &Vec<Towel>) -> bool {
+        todo!()
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
@@ -50,8 +56,13 @@ fn main() {
         }
         let available: Vec<Towel> = sections[0].split(", ").map(|s| s.parse().unwrap()).collect();
         let designs: Vec<Towel> = sections[1].lines().map(|s| s.parse().unwrap()).collect();
-        
-        println!("Answer: {}, {}", available.len(), designs.len());
+        let mut possible = 0;
+        for d in &designs {
+            if d.can_be_made_from(&available) {
+                possible += 1;
+            }
+        }
+        println!("Possible: {} out of {}", possible, designs.len());
     } else {
         println!("Please provide 1 argument: Filename");
     }
