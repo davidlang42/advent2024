@@ -1,5 +1,6 @@
 use std::fs;
 use std::env;
+use std::collections::HashMap;
 
 // enum Color {
 //     White,
@@ -57,8 +58,9 @@ fn main() {
         let designs: Vec<&str> = sections[1].lines().collect();
         let mut possible = 0;
         let mut combos = 0;
+        let mut result_cache = HashMap::new();
         for d in &designs {
-            let number = number_of_ways_to_make(&d, &available);
+            let number = number_of_ways_to_make(&mut result_cache, &d, &available);
             if number > 0 {
                 possible += 1;
             }
@@ -71,17 +73,22 @@ fn main() {
     }
 }
 
-fn number_of_ways_to_make(target: &str, available: &Vec<&str>) -> usize {
-    let mut count = 0;
-    for a in available {
-        if target.starts_with(a) {
-            let remaining = &target[a.len()..target.len()];
-            if remaining.len() == 0 {
-                count += 1;
-            } else {
-                count += number_of_ways_to_make(remaining, available);
+fn number_of_ways_to_make<'a>(result_cache: &mut HashMap<&'a str, usize>, target: &'a str, available: &Vec<&str>) -> usize {
+    if let Some(result) = result_cache.get(target) {
+        *result
+    } else {
+        let mut count = 0;
+        for a in available {
+            if target.starts_with(a) {
+                let remaining = &target[a.len()..target.len()];
+                if remaining.len() == 0 {
+                    count += 1;
+                } else {
+                    count += number_of_ways_to_make(result_cache, remaining, available);
+                }
             }
         }
+        result_cache.insert(target, count);
+        count
     }
-    count
 }
