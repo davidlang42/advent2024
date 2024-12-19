@@ -134,6 +134,22 @@ impl Computer {
         while pc.run_next() { }
         pc
     }
+
+    fn simulate_fast_output_matches_program(&self, initial_register_a: usize) -> bool {
+        let mut pc = self.clone();
+        pc.register_a = initial_register_a;
+        while pc.run_next() {
+            if pc.output.len() > self.instructions.len() {
+                return false;
+            }
+            for i in 0..self.output.len() {
+                if self.output[i] != self.instructions[i] as usize {
+                    return false;
+                }
+            }
+        }
+        pc.output_matches_program()
+    }
 }
 
 fn main() {
@@ -178,22 +194,33 @@ fn main() {
         // find the max seed which gets correct output length
         let mut max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
         println!("Max seed {} achieves output length {}", max, original.instructions.len());
-        // iterate over the output numbers in reverse getting each place right in order
-        for i in 1..(original.instructions.len() + 1) {
-            println!("Before #{}: MIN {:?}", i, original.simulate_seed(min));
-            min = bisect(&original, min, max, &|pc: &Computer| pc.number_of_outputs_matching_program_from_end() >= i);
-            println!("After  #{}: MIN {:?}", i, original.simulate_seed(min));
-            println!("Before #{}: MAX {:?}", i, original.simulate_seed(max));
-            max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
-            println!("After  #{}: MAX {:?}", i, original.simulate_seed(max));
-            if min == max - 1 {
-                println!("Answer: {}", max);
+        // try all
+        for seed in min..(max+1) {
+            if original.simulate_fast_output_matches_program(seed) {
+                println!("Answer: {}", seed);
+                break;
             }
-            if min >= max {
-                panic!();
+            if seed.rem_euclid(1000000) == 0 {
+                println!("{}", seed);
             }
         }
-        println!("Answer: {}-{}", min, max);
+
+        // // iterate over the output numbers in reverse getting each place right in order
+        // for i in 1..(original.instructions.len() + 1) {
+        //     println!("Before #{}: MIN {:?}", i, original.simulate_seed(min));
+        //     min = bisect(&original, min, max, &|pc: &Computer| pc.number_of_outputs_matching_program_from_end() >= i);
+        //     println!("After  #{}: MIN {:?}", i, original.simulate_seed(min));
+        //     println!("Before #{}: MAX {:?}", i, original.simulate_seed(max));
+        //     max = bisect(&original, min + 1, max + 1, &|pc: &Computer| pc.output[i] != original.instructions[i] as usize) - 1;
+        //     println!("After  #{}: MAX {:?}", i, original.simulate_seed(max));
+        //     if min == max - 1 {
+        //         println!("Answer: {}", max);
+        //     }
+        //     if min >= max {
+        //         panic!();
+        //     }
+        // }
+        // println!("Answer: {}-{}", min, max);
     } else if args.len() == 3 {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
