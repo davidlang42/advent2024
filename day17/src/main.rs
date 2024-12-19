@@ -247,11 +247,17 @@ fn simulate_fast_output_matches_program(mut a: usize, expecting_output: &Vec<u8>
 }
 
 fn power_of_2(exp: usize) -> usize {
-    let mut power = 1;
-    for _ in 0..exp {
-        power *= 2;
+    match exp {
+        0 => 1,
+        1 => 2,
+        2 => 4,
+        3 => 8,
+        4 => 16,
+        5 => 32,
+        6 => 64,
+        7 => 128,
+        _ => panic!()
     }
-    power
 }
 
 fn bisect(original: &Computer, mut min: usize, mut max: usize, condition: &dyn Fn(&Computer) -> bool) -> usize {
