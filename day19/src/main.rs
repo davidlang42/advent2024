@@ -56,25 +56,32 @@ fn main() {
         let available: Vec<&str> = sections[0].split(", ").collect();
         let designs: Vec<&str> = sections[1].lines().collect();
         let mut possible = 0;
+        let mut combos = 0;
         for d in &designs {
-            if can_be_made_from(&d, &available) {
+            let number = number_of_ways_to_make(&d, &available);
+            if number > 0 {
                 possible += 1;
             }
+            combos += number;
         }
         println!("Possible: {} out of {}", possible, designs.len());
+        println!("Combos: {}", combos);
     } else {
         println!("Please provide 1 argument: Filename");
     }
 }
 
-fn can_be_made_from(target: &str, available: &Vec<&str>) -> bool {
+fn number_of_ways_to_make(target: &str, available: &Vec<&str>) -> usize {
+    let mut count = 0;
     for a in available {
         if target.starts_with(a) {
             let remaining = &target[a.len()..target.len()];
-            if remaining.len() == 0 || can_be_made_from(remaining, available) {
-                return true;
+            if remaining.len() == 0 {
+                count += 1;
+            } else {
+                count += number_of_ways_to_make(remaining, available);
             }
         }
     }
-    false
+    count
 }
