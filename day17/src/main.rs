@@ -134,25 +134,6 @@ impl Computer {
         while pc.run_next() { }
         pc
     }
-
-    fn simulate_fast_output_matches_program(&mut self, initial_register_a: usize) -> bool {
-        self.register_a = initial_register_a;
-        self.register_b = 0;
-        self.register_c = 0;
-        self.pointer = 0;
-        self.output.clear();
-        while self.run_next() {
-            if self.output.len() > self.instructions.len() {
-                return false;
-            }
-            for i in 0..self.output.len() {
-                if self.output[i] != self.instructions[i] as usize {
-                    return false;
-                }
-            }
-        }
-        self.output_matches_program()
-    }
 }
 
 fn main() {
@@ -161,7 +142,7 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let mut original: Computer = text.parse().unwrap();
+        let original: Computer = text.parse().unwrap();
         // part1
         let mut pc = original.clone();
         println!("{:?}", pc);
@@ -182,7 +163,7 @@ fn main() {
         }
         println!("Seed {} achieves output length {}", seed, original.instructions.len());
         // find the min seed which gets correct output length
-        let mut min = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() == original.instructions.len());
+        let min = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() == original.instructions.len());
         println!("Min seed {} achieves output length {}", min, original.instructions.len());
         // find any seed which gets too much output
         loop {
@@ -195,15 +176,15 @@ fn main() {
         }
         println!("Seed {} gets output greater than {}", seed, original.instructions.len());
         // find the max seed which gets correct output length
-        let mut max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
+        let max = bisect(&original, seed/10, seed, &|pc: &Computer| pc.output.len() > original.instructions.len()) - 1;
         println!("Max seed {} achieves output length {}", max, original.instructions.len());
         // try all
         for seed in min..(max+1) {
-            if original.simulate_fast_output_matches_program(seed) {
+            if simulate_fast_output_matches_program(seed, &original.instructions) {
                 println!("Answer: {}", seed);
                 break;
             }
-            if seed.rem_euclid(10000000) == 0 {
+            if seed.rem_euclid(100000000) == 0 {
                 println!("{}", seed);
             }
         }
@@ -237,6 +218,37 @@ fn main() {
     } else {
         println!("Please provide 1/2 argument(s): Filename Seed");
     }
+}
+
+// hard-coded to my input
+fn simulate_fast_output_matches_program(mut a: usize, expecting_output: &Vec<u8>) -> bool {
+    let mut b;
+    let mut c;
+    let mut o = 0;
+    while a != 0 {
+        b = a.rem_euclid(8);
+        b ^= 6;
+        c = a / power_of_2(b);
+        b ^= c;
+        b ^= 4;
+        if expecting_output[o] != b as u8 {
+            return false; // outputted wrong thing
+        }
+        o += 1;
+        if o == expecting_output.len() {
+            return false; // outputted too much
+        }
+        a /= 8;
+    }
+    true
+}
+
+fn power_of_2(exp: usize) -> usize {
+    let mut power = 1;
+    for _ in 0..exp {
+        power *= 2;
+    }
+    power
 }
 
 fn bisect(original: &Computer, mut min: usize, mut max: usize, condition: &dyn Fn(&Computer) -> bool) -> usize {
