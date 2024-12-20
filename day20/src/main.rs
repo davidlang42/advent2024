@@ -109,13 +109,13 @@ impl Pos {
         ]
     }
   
-    fn successors(&self, cheat: &CheatState, walls: &HashSet<Pos>) -> Vec<(Pos, CheatState)> {
+    fn successors(&self, cheat: &CheatState, walls: &HashSet<Pos>, existing_solutions: &HashMap<Pos, usize>) -> Vec<(Pos, CheatState)> {
         let mut v: Vec<(Pos, CheatState)> = Vec::new();
         for adj in self.adjacent() {
             if cheat.is_active() {
                 v.push((adj, cheat.next_state()));
             } else {
-                if cheat.is_available() {
+                if cheat.is_available() && !existing_solutions.contains_key(&adj) {
                     let cheat_started = cheat.start_cheat(&adj);
                     v.push((adj, cheat_started));
                 }
@@ -136,23 +136,29 @@ impl Race {
             }),
             moves: 0
         };
-        let result = bfs(&(self.start, no_cheat), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls), |(p, _c)| *p == self.end);
+        let no_other_solutions = HashMap::new();
+        let result = bfs(&(self.start, no_cheat), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls, &no_other_solutions), |(p, _c)| *p == self.end);
         result.expect("No solution").len() - 1
     }
 
-    fn cheat_paths(&self) -> HashMap<Pos, usize> { // start cheat : picoseconds saved
+    fn cheat_paths(&self, threshold: usize) -> HashMap<Pos, usize> { // start cheat : picoseconds saved
         let no_cheat = self.no_cheat_path();
         let not_yet_cheated = CheatState {
             start: None,
             moves: 0
         };
-        let result = bfs(&(self.start, not_yet_cheated), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls), |(p, _c)| *p == self.end).expect("No solution");
-        let (_, final_cheat) = result.last().unwrap();
-
-
-        let mut h = HashMap::new();
-        h.insert(final_cheat.start.unwrap(), no_cheat - (result.len() - 1));
-        h
+        let mut solutions_above_threshold = HashMap::new();
+        while let Some(result) = bfs(&(self.start, not_yet_cheated.clone()), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls, &solutions_above_threshold), |(p, _c)| *p == self.end) {
+            let (_, final_cheat) = result.last().unwrap();
+            let pico_saved = no_cheat - (result.len() - 1);
+            if pico_saved < threshold {
+                break;
+            }
+            let cheat_start = final_cheat.start.unwrap();
+            println!("Start at {:?}, saves {} picoseconds", cheat_start, pico_saved);
+            solutions_above_threshold.insert(cheat_start, pico_saved);
+        }
+        solutions_above_threshold
     }
 }
 
@@ -164,14 +170,24 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
-        let mut count = 0;
-        for (start_cheat, pico) in race.cheat_paths().iter() {
-            println!("Start at {:?}, saves {} picoseconds", start_cheat, pico);
-            if *pico >= 100 {
-                count += 1;
+        let threshold = 2;
+        let result = race.cheat_paths(threshold);
+        println!("Count > {}: {}", threshold, result.len());
+        let mut count_by_saved = HashMap::new();
+        for (_, pico) in result {
+            if let Some(existing) = count_by_saved.get(&pico) {
+                count_by_saved.insert(pico, existing + 1);
+            } else {
+                count_by_saved.insert(pico, 1);
             }
         }
-        println!("Count > 100: {}", count);
+        for (saved, count) in count_by_saved {
+            if count == 1 {
+                println!("There is one cheat that saves {} picoseconds.", saved);
+            } else {
+                println!("There are {} cheats that save {} picoseconds.", count, saved);
+            }
+        }
     } else {
         println!("Please provide 1 argument: Filename");
     }
