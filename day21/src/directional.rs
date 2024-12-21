@@ -1,4 +1,5 @@
 use crate::keypad::Key;
+use crate::{NumericKey, NumericKeypad};
 
 //     +---+---+
 //     | ^ | A |
@@ -8,15 +9,32 @@ use crate::keypad::Key;
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct DirectionalKeypad {
     current: DirectionalKey,
-    pub presses: Vec<DirectionalKey>
+    pub presses: Vec<DirectionalKey>,
+    controlling_keypad: NumericKeypad
 }
 
 impl DirectionalKeypad {
-    pub fn new() -> Self {
+    pub fn new(controlling_keypad: NumericKeypad) -> Self {
         Self{
             current: DirectionalKey::Activate,
-            presses: Vec::new()
+            presses: Vec::new(),
+            controlling_keypad
         }
+    }
+
+    pub fn available_options(&self) -> Vec<Self> {
+        let mut v = Vec::new();
+        for op in self.controlling_keypad.valid_operations() {
+            let mut clone = self.clone();
+            clone.controlling_keypad.operate(&op);
+            clone.presses.push(op);
+            v.push(clone);
+        }
+        v
+    }
+
+    pub fn underlying_code(&self) -> &Vec<NumericKey> {
+        self.controlling_keypad.underlying_code()
     }
 }
 

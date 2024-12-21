@@ -1,11 +1,12 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
-use pathfinding::prelude::bfs;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use pathfinding::prelude::bfs;
 use crate::keypad::Key;
 use crate::numeric::{NumericKeypad, NumericKey};
+use crate::directional::DirectionalKeypad;
 
 mod keypad;
 mod numeric;
@@ -35,49 +36,6 @@ impl Display for Code {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
-struct FirstRobot {
-    keypad: NumericKeypad
-}
-
-impl FirstRobot {
-    fn new() -> Self {
-        Self {
-            keypad: NumericKeypad::new()
-        }
-    }
-}
-
-impl FirstRobot {
-    fn next_options(&self) -> Vec<FirstRobot> {
-        let mut v = Vec::new();
-        let mut keypad = self.keypad.clone();
-        keypad.press_current();
-        v.push(Self { keypad });
-        if self.keypad.can_move_up() {
-            let mut keypad = self.keypad.clone();
-            keypad.move_up();
-            v.push(Self { keypad });
-        }
-        if self.keypad.can_move_down() {
-            let mut keypad = self.keypad.clone();
-            keypad.move_down();
-            v.push(Self { keypad });
-        }
-        if self.keypad.can_move_left() {
-            let mut keypad = self.keypad.clone();
-            keypad.move_left();
-            v.push(Self { keypad });
-        }
-        if self.keypad.can_move_right() {
-            let mut keypad = self.keypad.clone();
-            keypad.move_right();
-            v.push(Self { keypad });
-        }
-        v
-    }
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
@@ -85,10 +43,10 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let codes: Vec<Code> = text.lines().map(|s| s.parse().unwrap()).collect();
-        let start = FirstRobot::new();
+        let start = DirectionalKeypad::new(NumericKeypad::new());
         for code in codes {
             println!("Code: {}", code);
-            let result = bfs(&start, |r| r.next_options(), |r| r.keypad.presses == code.keys).expect("No solution");
+            let result = bfs(&start, |dk: &DirectionalKeypad| dk.available_options(), |dk| *dk.underlying_code() == code.keys).expect("No solution");
             println!("Shortest path: {}", result.len() - 1);
             panic!();
         }

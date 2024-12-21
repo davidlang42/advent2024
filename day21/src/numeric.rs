@@ -1,4 +1,5 @@
 use crate::keypad::Key;
+use crate::directional::DirectionalKey;
 
 // +---+---+---+
 // | 7 | 8 | 9 |
@@ -23,40 +24,35 @@ impl NumericKeypad {
         }
     }
 
-    pub fn can_move_up(&self) -> bool {
-        !self.current.key_above().is_none()
+    pub fn valid_operations(&self) -> Vec<DirectionalKey> {
+        let mut v = vec![DirectionalKey::Activate];
+        if !self.current.key_above().is_none() {
+            v.push(DirectionalKey::Up)
+        }
+        if !self.current.key_below().is_none() {
+            v.push(DirectionalKey::Down)
+        }
+        if !self.current.key_left().is_none() {
+            v.push(DirectionalKey::Left)
+        }
+        if !self.current.key_right().is_none() {
+            v.push(DirectionalKey::Right)
+        }
+        v
     }
 
-    pub fn move_up(&mut self) {
-        self.current = self.current.key_above().unwrap();
+    pub fn operate(&mut self, operation: &DirectionalKey) {
+        match operation {
+            DirectionalKey::Activate => self.presses.push(self.current),
+            DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
+            DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
+            DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
+            DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
+        }
     }
 
-    pub fn can_move_down(&self) -> bool {
-        !self.current.key_below().is_none()
-    }
-
-    pub fn move_down(&mut self) {
-        self.current = self.current.key_below().unwrap();
-    }
-
-    pub fn can_move_left(&self) -> bool {
-        !self.current.key_left().is_none()
-    }
-
-    pub fn move_left(&mut self) {
-        self.current = self.current.key_left().unwrap();
-    }
-
-    pub fn can_move_right(&self) -> bool {
-        !self.current.key_right().is_none()
-    }
-
-    pub fn move_right(&mut self) {
-        self.current = self.current.key_right().unwrap();
-    }
-    
-    pub fn press_current(&mut self) {
-        self.presses.push(self.current);
+    pub fn underlying_code(&self) -> &Vec<NumericKey> {
+        &self.presses
     }
 }
 
