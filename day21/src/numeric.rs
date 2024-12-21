@@ -121,4 +121,24 @@ impl Key for NumericKey {
             Self::Digit(d) => Some(Self::Digit(d + 1))
         }
     }
+
+    fn row(&self) -> usize {
+        match self {
+            Self::Digit(0) => 3,
+            Self::Activate => 3,
+            Self::Digit(d) if *d <= 3 => 2,
+            Self::Digit(d) if *d <= 6 => 1,
+            _ => 0
+        }
+    }
+
+    fn col(&self) -> usize {
+        match self {
+            Self::Digit(0) => 1,
+            Self::Activate => 2,
+            Self::Digit(d) if d % 3 == 0 => 2,
+            Self::Digit(d) if d % 3 == 1 => 0,
+            _ => 1
+        }
+    }
 }

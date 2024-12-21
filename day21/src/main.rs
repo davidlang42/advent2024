@@ -43,7 +43,7 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let codes: Vec<Code> = text.lines().map(|s| s.parse().unwrap()).collect();
-        let start = DirectionalKeypad::new(DirectionalKeypad::new(NumericKeypad::new()));
+        let start = DirectionalKeypad::new(NumericKeypad::new());
         for code in codes {
             println!("Code: {}", code);
             let result = bfs(&start, |dk| dk.available_options(&code.keys), |dk| *dk.underlying_code() == code.keys).expect("No solution");

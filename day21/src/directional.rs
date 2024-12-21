@@ -143,4 +143,21 @@ impl Key for DirectionalKey {
             Self::Down => Some(Self::Right)
         }
     }
+
+    fn row(&self) -> usize {
+        match self {
+            Self::Activate => 0,
+            Self::Up => 0,
+            _ => 1
+        }
+    }
+
+    fn col(&self) -> usize {
+        match self {
+            Self::Left => 0,
+            Self::Up => 1,
+            Self::Down => 1,
+            _ => 2
+        }
+    }
 }

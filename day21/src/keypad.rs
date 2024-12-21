@@ -8,6 +8,12 @@ pub trait Key : Sized {
     fn key_below(&self) -> Option<Self>;
     fn key_left(&self) -> Option<Self>;
     fn key_right(&self) -> Option<Self>;
+    fn row(&self) -> usize;
+    fn col(&self) -> usize;
+    
+    fn minimum_distance_to(&self, other: &Self) -> usize {
+        self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
+    }
 }
 
 pub trait Keypad : Clone {
