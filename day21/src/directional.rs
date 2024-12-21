@@ -36,6 +36,10 @@ impl DirectionalKeypad {
     pub fn underlying_code(&self) -> &Vec<NumericKey> {
         self.controlling_keypad.underlying_code()
     }
+
+    pub fn press_string(&self) -> String {
+        self.presses.iter().map(|p| p.to_char()).collect()
+    }
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Copy)]

@@ -47,7 +47,7 @@ fn main() {
         for code in codes {
             println!("Code: {}", code);
             let result = bfs(&start, |dk: &DirectionalKeypad| dk.available_options(), |dk| *dk.underlying_code() == code.keys).expect("No solution");
-            println!("Shortest path: {}", result.len() - 1);
+            println!("Result ({}): {}", result.len() - 1, result.last().unwrap().press_string());
             panic!();
         }
     } else {
