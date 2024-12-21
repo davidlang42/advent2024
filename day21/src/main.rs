@@ -7,6 +7,7 @@ use std::fmt::Formatter;
 use crate::numeric::{NumericKeypad, NumericKey};
 
 mod numeric;
+mod directional;
 
 struct Code {
     keys: Vec<NumericKey>
