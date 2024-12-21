@@ -33,12 +33,41 @@ impl<K: Keypad> DirectionalKeypad<K> {
         v
     }
 
-    pub fn underlying_code(&self) -> &Vec<NumericKey> {
-        self.controlling_keypad.underlying_code()
-    }
-
     pub fn press_string(&self) -> String {
         self.presses.iter().map(|p| p.to_char()).collect()
+    }
+}
+
+impl<K: Keypad> Keypad for DirectionalKeypad<K> {
+    fn valid_operations(&self) -> Vec<DirectionalKey> {
+        let mut v = vec![DirectionalKey::Activate];
+        if !self.current.key_above().is_none() {
+            v.push(DirectionalKey::Up)
+        }
+        if !self.current.key_below().is_none() {
+            v.push(DirectionalKey::Down)
+        }
+        if !self.current.key_left().is_none() {
+            v.push(DirectionalKey::Left)
+        }
+        if !self.current.key_right().is_none() {
+            v.push(DirectionalKey::Right)
+        }
+        v
+    }
+
+    fn operate(&mut self, operation: &DirectionalKey) {
+        match operation {
+            DirectionalKey::Activate => self.presses.push(self.current),
+            DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
+            DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
+            DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
+            DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
+        }
+    }
+
+    fn underlying_code(&self) -> &Vec<NumericKey> {
+        self.controlling_keypad.underlying_code()
     }
 }
 

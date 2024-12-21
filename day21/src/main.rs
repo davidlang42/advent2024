@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use pathfinding::prelude::bfs;
-use crate::keypad::Key;
+use crate::keypad::{Key, Keypad};
 use crate::numeric::{NumericKeypad, NumericKey};
 use crate::directional::DirectionalKeypad;
 
