@@ -1,4 +1,4 @@
-use crate::keypad::Key;
+use crate::keypad::{Key, Keypad};
 use crate::directional::DirectionalKey;
 
 // +---+---+---+
@@ -23,8 +23,10 @@ impl NumericKeypad {
             presses: Vec::new()
         }
     }
+}
 
-    pub fn valid_operations(&self) -> Vec<DirectionalKey> {
+impl Keypad for NumericKeypad {
+    fn valid_operations(&self) -> Vec<DirectionalKey> {
         let mut v = vec![DirectionalKey::Activate];
         if !self.current.key_above().is_none() {
             v.push(DirectionalKey::Up)
@@ -41,7 +43,7 @@ impl NumericKeypad {
         v
     }
 
-    pub fn operate(&mut self, operation: &DirectionalKey) {
+    fn operate(&mut self, operation: &DirectionalKey) {
         match operation {
             DirectionalKey::Activate => self.presses.push(self.current),
             DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
@@ -51,7 +53,7 @@ impl NumericKeypad {
         }
     }
 
-    pub fn underlying_code(&self) -> &Vec<NumericKey> {
+    fn underlying_code(&self) -> &Vec<NumericKey> {
         &self.presses
     }
 }
