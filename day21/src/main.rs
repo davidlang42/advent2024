@@ -48,19 +48,28 @@ impl FirstRobot {
 
 impl FirstRobot {
     fn next_options(&self) -> Vec<FirstRobot> {
-        let mut v = vec![Self {
-            keypad: self.keypad.press_current()
-        }];
-        if let Some(keypad) = self.keypad.move_up() {
+        let mut v = Vec::new();
+        let mut keypad = self.keypad.clone();
+        keypad.press_current();
+        v.push(Self { keypad });
+        if self.keypad.can_move_up() {
+            let mut keypad = self.keypad.clone();
+            keypad.move_up();
             v.push(Self { keypad });
         }
-        if let Some(keypad) = self.keypad.move_down() {
+        if self.keypad.can_move_down() {
+            let mut keypad = self.keypad.clone();
+            keypad.move_down();
             v.push(Self { keypad });
         }
-        if let Some(keypad) = self.keypad.move_left() {
+        if self.keypad.can_move_left() {
+            let mut keypad = self.keypad.clone();
+            keypad.move_left();
             v.push(Self { keypad });
         }
-        if let Some(keypad) = self.keypad.move_right() {
+        if self.keypad.can_move_right() {
+            let mut keypad = self.keypad.clone();
+            keypad.move_right();
             v.push(Self { keypad });
         }
         v

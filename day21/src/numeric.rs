@@ -21,38 +21,40 @@ impl NumericKeypad {
         }
     }
 
-    pub fn move_up(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_up()?,
-            presses: self.presses.clone()
-        })
+    pub fn can_move_up(&self) -> bool {
+        !self.current.key_above().is_none()
     }
 
-    pub fn move_down(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_down()?,
-            presses: self.presses.clone()
-        })
+    pub fn move_up(&mut self) {
+        self.current = self.current.key_above().unwrap();
     }
 
-    pub fn move_left(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_left()?,
-            presses: self.presses.clone()
-        })
+    pub fn can_move_down(&self) -> bool {
+        !self.current.key_below().is_none()
     }
 
-    pub fn move_right(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_right()?,
-            presses: self.presses.clone()
-        })
+    pub fn move_down(&mut self) {
+        self.current = self.current.key_below().unwrap();
+    }
+
+    pub fn can_move_left(&self) -> bool {
+        !self.current.key_left().is_none()
+    }
+
+    pub fn move_left(&mut self) {
+        self.current = self.current.key_left().unwrap();
+    }
+
+    pub fn can_move_right(&self) -> bool {
+        !self.current.key_right().is_none()
+    }
+
+    pub fn move_right(&mut self) {
+        self.current = self.current.key_right().unwrap();
     }
     
-    pub fn press_current(&self) -> Self {
-        let mut next = self.clone();
-        next.presses.push(self.current);
-        next
+    pub fn press_current(&mut self) {
+        self.presses.push(self.current);
     }
 }
 
@@ -82,7 +84,7 @@ impl NumericKey {
         }
     }
 
-    fn move_up(&self) -> Option<Self> {
+    fn key_above(&self) -> Option<Self> {
         match self {
             Self::Activate => Some(Self::Digit(3)),
             Self::Digit(0) => Some(Self::Digit(2)),
@@ -91,7 +93,7 @@ impl NumericKey {
         }
     }
 
-    fn move_down(&self) -> Option<Self> {
+    fn key_below(&self) -> Option<Self> {
         match self {
             Self::Activate => None,
             Self::Digit(0) => None,
@@ -102,7 +104,7 @@ impl NumericKey {
         }
     }
 
-    fn move_left(&self) -> Option<Self> {
+    fn key_left(&self) -> Option<Self> {
         match self {
             Self::Activate => Some(Self::Digit(0)),
             Self::Digit(0) => None,
@@ -111,7 +113,7 @@ impl NumericKey {
         }
     }
 
-    fn move_right(&self) -> Option<Self> {
+    fn key_right(&self) -> Option<Self> {
         match self {
             Self::Activate => None,
             Self::Digit(0) => Some(Self::Activate),
