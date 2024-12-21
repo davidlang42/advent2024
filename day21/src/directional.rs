@@ -22,13 +22,15 @@ impl<K: Keypad> DirectionalKeypad<K> {
         }
     }
     
-    pub fn available_options(&self) -> Vec<Self> {
+    pub fn available_options(&self, goal_code: &Vec<NumericKey>) -> Vec<Self> {
         let mut v = Vec::new();
         for op in self.controlling_keypad.valid_operations() {
             let mut clone = self.clone();
             clone.controlling_keypad.operate(&op);
             clone.presses.push(op);
-            v.push(clone);
+            if clone.code_is_possible(goal_code) {
+                v.push(clone);
+            }
         }
         v
     }

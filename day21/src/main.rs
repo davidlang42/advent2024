@@ -46,7 +46,7 @@ fn main() {
         let start = DirectionalKeypad::new(NumericKeypad::new());
         for code in codes {
             println!("Code: {}", code);
-            let result = bfs(&start, |dk| dk.available_options(), |dk| *dk.underlying_code() == code.keys).expect("No solution");
+            let result = bfs(&start, |dk| dk.available_options(&code.keys), |dk| *dk.underlying_code() == code.keys).expect("No solution");
             println!("Result ({}): {}", result.len() - 1, result.last().unwrap().press_string());
             panic!();
         }
