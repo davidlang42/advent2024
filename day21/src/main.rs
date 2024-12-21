@@ -4,8 +4,10 @@ use std::str::FromStr;
 use pathfinding::prelude::bfs;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use crate::keypad::Key;
 use crate::numeric::{NumericKeypad, NumericKey};
 
+mod keypad;
 mod numeric;
 mod directional;
 

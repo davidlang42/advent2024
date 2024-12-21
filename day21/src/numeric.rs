@@ -1,3 +1,5 @@
+use crate::keypad::Key;
+
 // +---+---+---+
 // | 7 | 8 | 9 |
 // +---+---+---+
@@ -64,8 +66,8 @@ pub enum NumericKey {
     Digit(u8)
 }
 
-impl NumericKey {
-    pub fn from_char(c: char) -> Self {
+impl Key for NumericKey {
+    fn from_char(c: char) -> Self {
         if c == 'A' {
             Self::Activate
         } else {
@@ -77,7 +79,7 @@ impl NumericKey {
         }
     }
 
-    pub fn to_char(&self) -> char {
+    fn to_char(&self) -> char {
         match self {
             Self::Activate => 'A',
             Self::Digit(d) => (d + '0' as u8) as char

@@ -1,3 +1,4 @@
+use crate::keypad::Key;
 
 //     +---+---+
 //     | ^ | A |
@@ -17,40 +18,6 @@ impl DirectionalKeypad {
             presses: Vec::new()
         }
     }
-
-    pub fn move_up(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_up()?,
-            presses: self.presses.clone()
-        })
-    }
-
-    pub fn move_down(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_down()?,
-            presses: self.presses.clone()
-        })
-    }
-
-    pub fn move_left(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_left()?,
-            presses: self.presses.clone()
-        })
-    }
-
-    pub fn move_right(&self) -> Option<Self> {
-        Some(Self {
-            current: self.current.move_right()?,
-            presses: self.presses.clone()
-        })
-    }
-    
-    pub fn press_current(&self) -> Self {
-        let mut next = self.clone();
-        next.presses.push(self.current);
-        next
-    }
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Copy)]
@@ -62,7 +29,7 @@ pub enum DirectionalKey {
     Down
 }
 
-impl DirectionalKey {
+impl Key for DirectionalKey {
     fn from_char(c: char) -> Self {
         match c {
             'A' => Self::Activate,
@@ -84,7 +51,7 @@ impl DirectionalKey {
         }
     }
 
-    fn move_up(&self) -> Option<Self> {
+    fn key_above(&self) -> Option<Self> {
         match self {
             Self::Activate => None,
             Self::Up => None,
@@ -94,7 +61,7 @@ impl DirectionalKey {
         }
     }
 
-    fn move_down(&self) -> Option<Self> {
+    fn key_below(&self) -> Option<Self> {
         match self {
             Self::Activate => Some(Self::Right),
             Self::Up => Some(Self::Down),
@@ -104,7 +71,7 @@ impl DirectionalKey {
         }
     }
 
-    fn move_left(&self) -> Option<Self> {
+    fn key_left(&self) -> Option<Self> {
         match self {
             Self::Activate => Some(Self::Up),
             Self::Up => None,
@@ -114,7 +81,7 @@ impl DirectionalKey {
         }
     }
 
-    fn move_right(&self) -> Option<Self> {
+    fn key_right(&self) -> Option<Self> {
         match self {
             Self::Activate => None,
             Self::Up => Some(Self::Activate),
