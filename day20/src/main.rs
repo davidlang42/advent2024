@@ -90,6 +90,43 @@ impl Pos {
     }
 }
 
+
+#[derive(Clone, Hash, Eq, PartialEq)]
+struct CheatState {
+    start: Option<Pos>,
+    moves: usize
+}
+
+impl CheatState {
+    fn is_active(&self) -> bool {
+        !self.start.is_none() && self.moves > 0
+    }
+
+    fn next_state(&self) -> Self {
+        if !self.is_active() {
+           panic!("Called next_state() when not active");
+        }
+        Self {
+            start: self.start,
+            moves: self.moves - 1
+        }
+    }
+
+    fn is_available(&self) -> bool {
+        self.start.is_none()
+    }
+
+    fn start_cheat(&self, start: &Pos) -> Self {
+        if !self.is_available() {
+           panic!("Called start_cheat() when not available");
+        }
+        Self {
+            start: Some(*start),
+            moves: 0
+        }
+    }
+}
+
 impl Race {
     fn no_cheat_path(&self) -> usize {
         let (result, _) = astar(
@@ -101,32 +138,47 @@ impl Race {
         result.len() - 1
     }
 
-    fn cheat_paths(&self, threshold: usize) -> Vec<(Pos, usize)> { // pos of cheated wall : picoseconds saved
-        let no_cheat = self.no_cheat_path();
+    fn successors(pos: &Pos, size: &Pos, cheat: &CheatState, walls: &HashSet<Pos>, existing_solutions: &HashMap<Pos, usize>) -> Vec<((Pos, CheatState),u32)> {
         let mut v = Vec::new();
-        let mut progress = 0;
-        let total = self.walls.len();
-
-        for cheat_wall in &self.walls {
-            let mut walls_without_cheat_wall = self.walls.clone();
-            walls_without_cheat_wall.remove(&cheat_wall);
-            let (result, _) = astar(
-                &self.start,
-                |p| p.adjacent(&self.size).into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
-                |p| p.minimum_distance(&self.end),
-                |p| *p == self.end
-            ).expect("No solution");
-            let cheat_path = result.len() - 1;
-            let pico_saved = no_cheat - cheat_path;
-            if pico_saved >= threshold {
-                v.push((*cheat_wall, pico_saved));
-            }
-            progress += 1;
-            if progress % 100 == 0 {
-                println!("{}/{}={}%", progress, total, progress as f64 * 100.0 / total as f64);
+        for adj in pos.adjacent(size) {
+            if cheat.is_active() {
+                v.push(((adj, cheat.next_state()), 1));
+            } else {
+                if cheat.is_available() && !existing_solutions.contains_key(&adj) {
+                    let cheat_started = cheat.start_cheat(&adj);
+                    v.push(((adj, cheat_started), 1));
+                }
+                if !walls.contains(&adj) {
+                    v.push(((adj, cheat.clone()), 1));
+                }
             }
         }
         v
+    }
+
+    fn cheat_paths(&self, threshold: usize) -> HashMap<Pos, usize> { // cheat start : picoseconds saved
+        let no_cheat = self.no_cheat_path();
+        let not_yet_cheated = CheatState {
+            start: None,
+            moves: 0
+        };
+        let mut solutions_above_threshold = HashMap::new();
+        while let Some(result) = astar(
+            &(self.start, not_yet_cheated.clone()),
+            |(p, c)| Self::successors(p, &self.size, c, &self.walls, &solutions_above_threshold),
+            |(p, _c)| p.minimum_distance(&self.end),
+            |(p, _c)| *p == self.end
+        ) {
+            let (_, final_cheat) = result.0.last().unwrap();
+            let pico_saved = no_cheat - (result.0.len() - 1);
+            if pico_saved < threshold {
+                break;
+            }
+            let cheat_start = final_cheat.start.unwrap();
+            println!("Start at {:?}, saves {} picoseconds", cheat_start, pico_saved);
+            solutions_above_threshold.insert(cheat_start, pico_saved);
+        }
+        solutions_above_threshold
     }
 }
 
@@ -140,7 +192,7 @@ fn main() {
         println!("No cheat path: {}", race.no_cheat_path());
         // test threshold 2, result 44
         // input threshold 100, result ?
-        let threshold = 100;
+        let threshold = 2;
         let result = race.cheat_paths(threshold);
         println!("Count > {}: {}", threshold, result.len());
         let mut count_by_saved = HashMap::new();
