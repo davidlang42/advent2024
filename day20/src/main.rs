@@ -47,42 +47,6 @@ impl FromStr for Race {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq)]
-struct CheatState {
-    start: Option<Pos>,
-    moves: usize
-}
-
-impl CheatState {
-    fn is_active(&self) -> bool {
-        !self.start.is_none() && self.moves > 0
-    }
-
-    fn next_state(&self) -> Self {
-        if !self.is_active() {
-           panic!("Called next_state() when not active");
-        }
-        Self {
-            start: self.start,
-            moves: self.moves - 1
-        }
-    }
-
-    fn is_available(&self) -> bool {
-        self.start.is_none()
-    }
-
-    fn start_cheat(&self, start: &Pos) -> Self {
-        if !self.is_available() {
-           panic!("Called start_cheat() when not available");
-        }
-        Self {
-            start: Some(*start),
-            moves: 0
-        }
-    }
-}
-
 impl Pos {
     // fn minimum_cost(&self, end: &Pos) -> u32 {
     //     (self.row.abs_diff(end.row) + self.col.abs_diff(end.col)) as u32
@@ -108,57 +72,42 @@ impl Pos {
             }
         ]
     }
-  
-    fn successors(&self, cheat: &CheatState, walls: &HashSet<Pos>, existing_solutions: &HashMap<Pos, usize>) -> Vec<(Pos, CheatState)> {
-        let mut v: Vec<(Pos, CheatState)> = Vec::new();
-        for adj in self.adjacent() {
-            if cheat.is_active() {
-                v.push((adj, cheat.next_state()));
-            } else {
-                if cheat.is_available() && !existing_solutions.contains_key(&adj) {
-                    let cheat_started = cheat.start_cheat(&adj);
-                    v.push((adj, cheat_started));
-                }
-                if !walls.contains(&adj) {
-                    v.push((adj, cheat.clone()));
-                }
-            }
-        }
-        v
-    }
 }
 
 impl Race {
     fn no_cheat_path(&self) -> usize {
-        let no_cheat = CheatState {
-            start: Some(Pos {
-                row: 0, col: 0
-            }),
-            moves: 0
-        };
-        let no_other_solutions = HashMap::new();
-        let result = bfs(&(self.start, no_cheat), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls, &no_other_solutions), |(p, _c)| *p == self.end);
+        let result = bfs(
+            &self.start,
+            |p| p.adjacent().into_iter().filter(|p| !self.walls.contains(p)).collect::<Vec<Pos>>(),
+            |p| *p == self.end
+        );
         result.expect("No solution").len() - 1
     }
 
-    fn cheat_paths(&self, threshold: usize) -> HashMap<Pos, usize> { // start cheat : picoseconds saved
+    fn cheat_paths(&self, threshold: usize) -> Vec<(Pos, usize)> { // pos of cheated wall : picoseconds saved
         let no_cheat = self.no_cheat_path();
-        let not_yet_cheated = CheatState {
-            start: None,
-            moves: 0
-        };
-        let mut solutions_above_threshold = HashMap::new();
-        while let Some(result) = bfs(&(self.start, not_yet_cheated.clone()), |(p,c): &(Pos, CheatState)| p.successors(c, &self.walls, &solutions_above_threshold), |(p, _c)| *p == self.end) {
-            let (_, final_cheat) = result.last().unwrap();
-            let pico_saved = no_cheat - (result.len() - 1);
-            if pico_saved < threshold {
-                break;
+        let mut v = Vec::new();
+        let mut progress = 0;
+        let total = self.walls.len();
+        for cheat_wall in &self.walls {
+            let mut walls_without_cheat_wall = self.walls.clone();
+            walls_without_cheat_wall.remove(&cheat_wall);
+            let result = bfs(
+                &self.start,
+                |p| p.adjacent().into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).collect::<Vec<Pos>>(),
+                |p| *p == self.end
+            );
+            let cheat_path = result.expect("No solution").len() - 1;
+            let pico_saved = no_cheat - cheat_path;
+            if pico_saved >= threshold {
+                v.push((*cheat_wall, pico_saved));
             }
-            let cheat_start = final_cheat.start.unwrap();
-            println!("Start at {:?}, saves {} picoseconds", cheat_start, pico_saved);
-            solutions_above_threshold.insert(cheat_start, pico_saved);
+            progress += 1;
+            if progress % 10 == 0 {
+                println!("{}/{}={}%", progress, total, progress as f64 * 100.0 / total as f64);
+            }
         }
-        solutions_above_threshold
+        v
     }
 }
 
