@@ -1,5 +1,5 @@
 use crate::keypad::{Key, Keypad};
-use crate::NumericKey;
+use crate::{NumericKey, NumericKeypad};
 use crate::Code;
 use pathfinding::prelude::bfs;
 
@@ -9,43 +9,56 @@ use pathfinding::prelude::bfs;
 // | < | v | > |
 // +---+---+---+
 #[derive(Clone, Hash, Eq, PartialEq)]
-pub struct DirectionalKeypad<K: Keypad> {
+pub struct DirectionalKeypad {
     current: DirectionalKey,
     pub presses: Vec<DirectionalKey>,
-    controlling_keypad: K
+    controlling_keypad: NumericKeypad
 }
 
-impl<K: Keypad> DirectionalKeypad<K> {
-    pub fn new(controlling_keypad: K) -> Self {
+impl DirectionalKeypad {
+    pub fn new(controlling_keypad: NumericKeypad) -> Self {
         Self{
             current: DirectionalKey::Activate,
             presses: Vec::new(),
             controlling_keypad
         }
     }
+
+    pub fn presses_string(&self) -> String {
+        let mut s = String::new();
+        for key in &self.presses {
+            s.push(key.to_char());
+        }
+        s
+    }
     
-    pub fn available_options(&self, goal_code: &Vec<NumericKey>) -> Vec<Self> {
+    pub fn available_options(&self) -> Vec<Self> {
         let mut v = Vec::new();
-        for op in self.controlling_keypad.valid_operations() {
+        for op in self.controlling_keypad.valid_directions() {
             let mut clone = self.clone();
             clone.controlling_keypad.operate(&op);
             clone.presses.push(op);
-            if clone.code_is_possible(goal_code) {
-                v.push(clone);
-            }
+            v.push(clone)
         }
         v
     }
 
-    pub fn shortest_path_to_code(&self, code: &Code) -> Vec<DirectionalKey> {
-        let result = bfs(self, |dk| dk.available_options(&code.keys), |dk| *dk.underlying_code() == code.keys).expect("No solution");
-        result.into_iter().last().unwrap().presses
+    pub fn shortest_path_to_code(&self, code: &Code) -> Self {
+        let mut result = self.clone();
+        for key in &code.keys {
+            result = result.shortest_path_to_key(key);
+            result.presses.push(DirectionalKey::Activate);
+        }
+        result
     }
-}
 
-impl<K: Keypad> Keypad for DirectionalKeypad<K> {
-    fn valid_operations(&self) -> Vec<DirectionalKey> {
-        let mut v = vec![DirectionalKey::Activate];
+    fn shortest_path_to_key(&self, key: &NumericKey) -> Self {
+        let result = bfs(self, |dk| dk.available_options(), |dk| dk.controlling_keypad.current == *key).expect("No solution");
+        result.into_iter().last().unwrap()
+    }
+
+    fn valid_directions(&self) -> Vec<DirectionalKey> {
+        let mut v = Vec::new();
         if !self.current.key_above().is_none() {
             v.push(DirectionalKey::Up)
         }
@@ -76,7 +89,7 @@ impl<K: Keypad> Keypad for DirectionalKeypad<K> {
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq, Copy)]
+#[derive(Clone, Hash, Eq, PartialEq, Copy, Debug)]
 pub enum DirectionalKey {
     Activate,
     Up,

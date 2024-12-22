@@ -46,8 +46,8 @@ fn main() {
         for code in codes {
             println!("Code: {}", code);
             let result = start.shortest_path_to_code(&code);
-            let result_string: String = result.iter().map(|d| d.to_char()).collect();
-            println!("Result ({}): {}", result.len(), result_string);
+            let presses = result.presses_string();
+            println!("Result ({}): {}", presses.len(), presses);
             panic!();
         }
     } else {

@@ -12,7 +12,7 @@ use crate::directional::DirectionalKey;
 //     +---+---+
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct NumericKeypad {
-    current: NumericKey,
+    pub current: NumericKey,
     pub presses: Vec<NumericKey>
 }
 
@@ -23,11 +23,9 @@ impl NumericKeypad {
             presses: Vec::new()
         }
     }
-}
 
-impl Keypad for NumericKeypad {
-    fn valid_operations(&self) -> Vec<DirectionalKey> {
-        let mut v = vec![DirectionalKey::Activate];
+    pub fn valid_directions(&self) -> Vec<DirectionalKey> {
+        let mut v = Vec::new();
         if !self.current.key_above().is_none() {
             v.push(DirectionalKey::Up)
         }
@@ -43,7 +41,7 @@ impl Keypad for NumericKeypad {
         v
     }
 
-    fn operate(&mut self, operation: &DirectionalKey) {
+    pub fn operate(&mut self, operation: &DirectionalKey) {
         match operation {
             DirectionalKey::Activate => self.presses.push(self.current),
             DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
@@ -53,12 +51,12 @@ impl Keypad for NumericKeypad {
         }
     }
 
-    fn underlying_code(&self) -> &Vec<NumericKey> {
+    pub fn underlying_code(&self) -> &Vec<NumericKey> {
         &self.presses
     }
 }
 
-#[derive(Clone, Hash, Eq, PartialEq, Copy)]
+#[derive(Clone, Hash, Eq, PartialEq, Copy, Debug)]
 pub enum NumericKey {
     Activate,
     Digit(u8)
