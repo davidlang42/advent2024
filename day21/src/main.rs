@@ -1,39 +1,14 @@
 use std::fs;
 use std::env;
-use std::str::FromStr;
-use std::fmt::Display;
-use std::fmt::Formatter;
 use crate::keypad::Key;
+use crate::code::Code;
 use crate::numeric::{NumericKeypad, NumericKey};
 use crate::directional::DirectionalKeypad;
 
 mod keypad;
+mod code;
 mod numeric;
 mod directional;
-
-struct Code {
-    keys: Vec<NumericKey>
-}
-
-impl FromStr for Code {
-    type Err = String;
-
-    fn from_str(line: &str) -> Result<Self, Self::Err> {
-        let keys = line.chars().map(|c| NumericKey::from_char(c)).collect();
-        Ok(Self {
-            keys
-        })
-    }
-}
-
-impl Display for Code {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        for k in &self.keys {
-            write!(f, "{}", k.to_char())?
-        }
-        Ok(())
-    }
-}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -41,7 +16,7 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let codes: Vec<Code> = text.lines().map(|s| s.parse().unwrap()).collect();
+        let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let start = DirectionalKeypad::new(NumericKeypad::new());
         for code in codes {
             println!("Code: {}", code);

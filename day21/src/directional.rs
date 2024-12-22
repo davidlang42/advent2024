@@ -43,7 +43,7 @@ impl DirectionalKeypad {
         v
     }
 
-    pub fn shortest_path_to_code(&self, code: &Code) -> Self {
+    pub fn shortest_path_to_code(&self, code: &Code<NumericKey>) -> Self {
         let mut result = self.clone();
         for key in &code.keys {
             result = result.shortest_path_to_key(key);
