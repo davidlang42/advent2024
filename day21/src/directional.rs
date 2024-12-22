@@ -14,20 +14,20 @@ pub struct DirectionalKeypad {
 }
 
 impl DirectionalKeypad {
-    pub fn new() -> Self {
-        Self{
-            current: DirectionalKey::Activate,
-            presses: Vec::new()
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self{
+    //         current: DirectionalKey::Activate,
+    //         presses: Vec::new()
+    //     }
+    // }
 
-    pub fn presses_string(&self) -> String {
-        let mut s = String::new();
-        for key in &self.presses {
-            s.push(key.to_char());
-        }
-        s
-    }
+    // pub fn presses_string(&self) -> String {
+    //     let mut s = String::new();
+    //     for key in &self.presses {
+    //         s.push(key.to_char());
+    //     }
+    //     s
+    // }
 
     // fn valid_directions(&self) -> Vec<DirectionalKey> {
     //     let mut v = Vec::new();

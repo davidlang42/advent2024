@@ -1,5 +1,6 @@
 use crate::keypad::Key;
-use crate::directional::{Direction, DirectionaKey};
+use crate::Code;
+use crate::directional::{Direction, DirectionalKey};
 use pathfinding::prelude::bfs;
 
 // +---+---+---+
@@ -42,13 +43,22 @@ impl NumericKeypad {
         v
     }
 
+    pub fn presses_string(&self) -> String {
+        let mut s = String::new();
+        for key in &self.movements {
+            s.push(key.to_char());
+        }
+        s
+    }
+
     pub fn move_current(&mut self, direction: &Direction) {
-        match operation {
+        match direction {
             Direction::Up => self.current = self.current.key_above().unwrap(),
             Direction::Down => self.current = self.current.key_below().unwrap(),
             Direction::Left => self.current = self.current.key_left().unwrap(),
             Direction::Right => self.current = self.current.key_right().unwrap(),
         }
+        self.movements.push(DirectionalKey::Move(*direction))
     }
 
     pub fn shortest_path_to_code(&self, code: &Code<NumericKey>) -> Self {
