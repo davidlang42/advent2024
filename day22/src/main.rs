@@ -68,6 +68,8 @@ fn main() {
         let max = 10;
         let mut best_bananas: usize = 0;
         let mut best = None;
+        let total = ((max as isize - min as isize) + 1).pow(4) as usize;
+        let mut progress = 0;
         for a in min..max {
             for b in min..max {
                 for c in min..max {
@@ -81,6 +83,10 @@ fn main() {
                         if bananas > best_bananas {
                             best_bananas = bananas;
                             best = Some([a,b,c,d]);
+                        }
+                        progress += 1;
+                        if progress % 1000 == 0 {
+                            println!("{}/{}={}%", progress, total, progress as f64 * 100 as f64 / total as f64);
                         }
                     }
                 } 
