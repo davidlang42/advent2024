@@ -3,8 +3,7 @@ use std::env;
 use std::str::FromStr;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use pathfinding::prelude::bfs;
-use crate::keypad::{Key, Keypad};
+use crate::keypad::Key;
 use crate::numeric::{NumericKeypad, NumericKey};
 use crate::directional::DirectionalKeypad;
 
@@ -46,8 +45,9 @@ fn main() {
         let start = DirectionalKeypad::new(NumericKeypad::new());
         for code in codes {
             println!("Code: {}", code);
-            let result = bfs(&start, |dk| dk.available_options(&code.keys), |dk| *dk.underlying_code() == code.keys).expect("No solution");
-            println!("Result ({}): {}", result.len() - 1, result.last().unwrap().press_string());
+            let result = start.shortest_path_to_code(&code);
+            let result_string: String = result.iter().map(|d| d.to_char()).collect();
+            println!("Result ({}): {}", result.len(), result_string);
             panic!();
         }
     } else {

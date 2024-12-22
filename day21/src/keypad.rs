@@ -1,5 +1,6 @@
 use crate::NumericKey;
 use crate::directional::DirectionalKey;
+use std::hash::Hash;
 
 pub trait Key : Sized {
     fn from_char(c: char) -> Self;
@@ -16,7 +17,7 @@ pub trait Key : Sized {
     }
 }
 
-pub trait Keypad : Clone {
+pub trait Keypad : Hash + Clone + Eq + PartialEq {
     fn valid_operations(&self) -> Vec<DirectionalKey>;
     fn operate(&mut self, operation: &DirectionalKey);
     fn underlying_code(&self) -> &Vec<NumericKey>;

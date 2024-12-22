@@ -1,5 +1,7 @@
 use crate::keypad::{Key, Keypad};
 use crate::NumericKey;
+use crate::Code;
+use pathfinding::prelude::bfs;
 
 //     +---+---+
 //     | ^ | A |
@@ -35,8 +37,9 @@ impl<K: Keypad> DirectionalKeypad<K> {
         v
     }
 
-    pub fn press_string(&self) -> String {
-        self.presses.iter().map(|p| p.to_char()).collect()
+    pub fn shortest_path_to_code(&self, code: &Code) -> Vec<DirectionalKey> {
+        let result = bfs(self, |dk| dk.available_options(&code.keys), |dk| *dk.underlying_code() == code.keys).expect("No solution");
+        result.into_iter().last().unwrap().presses
     }
 }
 
