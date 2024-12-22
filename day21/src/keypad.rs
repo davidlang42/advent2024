@@ -32,7 +32,7 @@ impl<K: Key> Keypad<K> {
         }
     }
 
-    pub fn movements_string(&self) -> String {
+    pub fn _movements_string(&self) -> String {
         let mut s = String::new();
         for key in &self.movements {
             s.push(key.to_char());
@@ -44,6 +44,7 @@ impl<K: Key> Keypad<K> {
         self.shortest_paths_to_code_recursive(code, 0)
     }
 
+    //TODO add caching if needed
     fn shortest_paths_to_code_recursive(&self, code: &Code<K>, index: usize) -> Vec<Self> {
         let mut results = Vec::new();
         for mut result in self.shortest_paths_to_key(&code.keys[index]) {
