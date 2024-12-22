@@ -1,7 +1,7 @@
 use crate::Code;
 use crate::directional::{Direction, DirectionalKey};
 use std::hash::Hash;
-use pathfinding::prelude::bfs;
+use pathfinding::prelude::astar;
 
 pub trait Key : Sized + Default + Clone + Hash + Eq + PartialEq {
     fn from_char(c: char) -> Self;
@@ -50,16 +50,16 @@ impl<K: Key> Keypad<K> {
     }
 
     fn shortest_path_to_key(&self, key: &K) -> Self {
-        let result = bfs(self, |kp| kp.successors(), |kp| kp.current == *key).expect("No solution");
+        let (result, _) = astar(self, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
         result.into_iter().last().unwrap()
     }
 
-    fn successors(&self) -> Vec<Self> {
+    fn successors(&self) -> Vec<(Self, usize)> {
         let mut v = Vec::new();
         for direction in self.valid_moves() {
             let mut clone = self.clone();
             clone.move_current(&direction);
-            v.push(clone);
+            v.push((clone, 1));
         }
         v
     }

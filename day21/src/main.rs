@@ -3,7 +3,7 @@ use std::env;
 use crate::keypad::Keypad;
 use crate::code::Code;
 use crate::numeric::NumericKey;
-use crate::directional::DirectionalKey;
+//use crate::directional::DirectionalKey;
 
 mod keypad;
 mod code;
