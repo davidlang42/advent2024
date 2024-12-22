@@ -98,7 +98,6 @@ struct CheatState {
     moves: usize
 }
 
-//TODO cheat state
 impl CheatState {
     fn is_active(&self) -> bool {
         !self.start.is_none() && self.moves > 0
@@ -160,12 +159,12 @@ impl CheatState {
                     }
                 }
             } else {
-                //TODO up to here
-                if self.is_available() && !existing_solutions.contains_key(&self) {
-                    let cheat_started = self.start_cheat(&adj);
-                    v.push(((adj, cheat_started), 1));
-                }
-                if !walls.contains(&adj) {
+                if walls.contains(&adj) {
+                    if self.is_available() {
+                        let next_state = self.start_cheat(pos);
+                        v.push(((adj, next_state), 1));
+                    }
+                } else {
                     v.push(((adj, self.clone()), 1));
                 }
             }
