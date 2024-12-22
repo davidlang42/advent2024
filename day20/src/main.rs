@@ -1,7 +1,7 @@
 use std::fs;
 use std::env;
 use std::str::FromStr;
-use pathfinding::prelude::bfs;
+use pathfinding::prelude::astar;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
@@ -48,9 +48,9 @@ impl FromStr for Race {
 }
 
 impl Pos {
-    // fn minimum_cost(&self, end: &Pos) -> u32 {
-    //     (self.row.abs_diff(end.row) + self.col.abs_diff(end.col)) as u32
-    // }
+    fn minimum_distance(&self, end: &Pos) -> u32 {
+        (self.row.abs_diff(end.row) + self.col.abs_diff(end.col)) as u32
+    }
 
     fn adjacent(&self) -> [Self; 4] {
         [
@@ -76,12 +76,13 @@ impl Pos {
 
 impl Race {
     fn no_cheat_path(&self) -> usize {
-        let result = bfs(
+        let (result, _) = astar(
             &self.start,
-            |p| p.adjacent().into_iter().filter(|p| !self.walls.contains(p)).collect::<Vec<Pos>>(),
+            |p| p.adjacent().into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+            |p| p.minimum_distance(&self.end),
             |p| *p == self.end
-        );
-        result.expect("No solution").len() - 1
+        ).expect("No solution");
+        result.len() - 1
     }
 
     fn cheat_paths(&self, threshold: usize) -> Vec<(Pos, usize)> { // pos of cheated wall : picoseconds saved
@@ -92,12 +93,13 @@ impl Race {
         for cheat_wall in &self.walls {
             let mut walls_without_cheat_wall = self.walls.clone();
             walls_without_cheat_wall.remove(&cheat_wall);
-            let result = bfs(
+            let (result, _) = astar(
                 &self.start,
-                |p| p.adjacent().into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).collect::<Vec<Pos>>(),
+                |p| p.adjacent().into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+                |p| p.minimum_distance(&self.end),
                 |p| *p == self.end
-            );
-            let cheat_path = result.expect("No solution").len() - 1;
+            ).expect("No solution");
+            let cheat_path = result.len() - 1;
             let pico_saved = no_cheat - cheat_path;
             if pico_saved >= threshold {
                 v.push((*cheat_wall, pico_saved));
