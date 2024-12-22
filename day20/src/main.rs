@@ -8,7 +8,8 @@ use std::collections::HashMap;
 struct Race {
     start: Pos,
     end: Pos,
-    walls: HashSet<Pos>
+    walls: HashSet<Pos>,
+    size: Pos
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
@@ -25,6 +26,10 @@ impl FromStr for Race {
         let mut end = None;
         let mut walls = HashSet::new();
         let mut row = 0;
+        let mut size = Pos {
+            row: 0,
+            col: 0
+        };
         for line in text.lines() {
             let mut col = 0;
             for ch in line.chars() {
@@ -36,13 +41,16 @@ impl FromStr for Race {
                     end = Some(Pos { row, col });
                 }
                 col += 1;
+                size.col = col;
             }
             row += 1;
+            size.row = row;
         }
         Ok(Self {
             walls,
             start: start.expect("Missing start"),
-            end: end.expect("Missing end")
+            end: end.expect("Missing end"),
+            size
         })
     }
 }
@@ -52,25 +60,33 @@ impl Pos {
         (self.row.abs_diff(end.row) + self.col.abs_diff(end.col)) as u32
     }
 
-    fn adjacent(&self) -> [Self; 4] {
-        [
-            Self {
+    fn adjacent(&self, size: &Pos) -> Vec<Self> {
+        let mut v = Vec::new();
+        if self.row < size.row - 1 {
+            v.push(Self {
                 row: self.row + 1,
                 col: self.col
-            },
-            Self {
+            });
+        }
+        if self.row > 0 {
+            v.push(Self {
                 row: self.row - 1,
                 col: self.col
-            },
-            Self {
+            });
+        }
+        if self.col < size.col - 1 {
+            v.push(Self {
                 row: self.row,
                 col: self.col + 1
-            },
-            Self {
+            });
+        }
+        if self.col > 0 {
+            v.push(Self {
                 row: self.row,
                 col: self.col - 1
-            }
-        ]
+            });
+        }
+        v
     }
 }
 
@@ -78,7 +94,7 @@ impl Race {
     fn no_cheat_path(&self) -> usize {
         let (result, _) = astar(
             &self.start,
-            |p| p.adjacent().into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+            |p| p.adjacent(&self.size).into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
             |p| p.minimum_distance(&self.end),
             |p| *p == self.end
         ).expect("No solution");
@@ -90,12 +106,13 @@ impl Race {
         let mut v = Vec::new();
         let mut progress = 0;
         let total = self.walls.len();
+
         for cheat_wall in &self.walls {
             let mut walls_without_cheat_wall = self.walls.clone();
             walls_without_cheat_wall.remove(&cheat_wall);
             let (result, _) = astar(
                 &self.start,
-                |p| p.adjacent().into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+                |p| p.adjacent(&self.size).into_iter().filter(|p| !walls_without_cheat_wall.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
                 |p| p.minimum_distance(&self.end),
                 |p| *p == self.end
             ).expect("No solution");
@@ -105,7 +122,7 @@ impl Race {
                 v.push((*cheat_wall, pico_saved));
             }
             progress += 1;
-            if progress % 10 == 0 {
+            if progress % 100 == 0 {
                 println!("{}/{}={}%", progress, total, progress as f64 * 100.0 / total as f64);
             }
         }
@@ -123,7 +140,7 @@ fn main() {
         println!("No cheat path: {}", race.no_cheat_path());
         // test threshold 2, result 44
         // input threshold 100, result ?
-        let threshold = 2;
+        let threshold = 100;
         let result = race.cheat_paths(threshold);
         println!("Count > {}: {}", threshold, result.len());
         let mut count_by_saved = HashMap::new();
