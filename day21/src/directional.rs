@@ -1,62 +1,10 @@
 use crate::keypad::Key;
-use crate::{NumericKey, NumericKeypad};
-use crate::Code;
 
 //     +---+---+
 //     | ^ | A |
 // +---+---+---+
 // | < | v | > |
 // +---+---+---+
-#[derive(Clone, Hash, Eq, PartialEq, Debug)]
-pub struct DirectionalKeypad {
-    current: DirectionalKey,
-    pub presses: Vec<DirectionalKey>
-}
-
-impl DirectionalKeypad {
-    // pub fn new() -> Self {
-    //     Self{
-    //         current: DirectionalKey::Activate,
-    //         presses: Vec::new()
-    //     }
-    // }
-
-    // pub fn presses_string(&self) -> String {
-    //     let mut s = String::new();
-    //     for key in &self.presses {
-    //         s.push(key.to_char());
-    //     }
-    //     s
-    // }
-
-    // fn valid_directions(&self) -> Vec<DirectionalKey> {
-    //     let mut v = Vec::new();
-    //     if !self.current.key_above().is_none() {
-    //         v.push(DirectionalKey::Up)
-    //     }
-    //     if !self.current.key_below().is_none() {
-    //         v.push(DirectionalKey::Down)
-    //     }
-    //     if !self.current.key_left().is_none() {
-    //         v.push(DirectionalKey::Left)
-    //     }
-    //     if !self.current.key_right().is_none() {
-    //         v.push(DirectionalKey::Right)
-    //     }
-    //     v
-    // }
-
-    // fn operate(&mut self, operation: &DirectionalKey) {
-    //     match operation {
-    //         DirectionalKey::Activate => self.presses.push(self.current),
-    //         DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
-    //         DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
-    //         DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
-    //         DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
-    //     }
-    // }
-}
-
 #[derive(Clone, Hash, Eq, PartialEq, Copy, Debug)]
 pub enum DirectionalKey {
     Activate,
@@ -69,6 +17,12 @@ pub enum Direction {
     Down,
     Left,
     Right
+}
+
+impl Default for DirectionalKey {
+    fn default() -> Self {
+        Self::Activate
+    }
 }
 
 impl Key for DirectionalKey {
