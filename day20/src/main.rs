@@ -78,7 +78,7 @@ impl CheatState {
         }
         Self {
             start: Some(*start),
-            moves: 1
+            moves: 0
         }
     }
 }
@@ -170,6 +170,8 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
+        // test threshold 2, result 44
+        // input threshold 100, result ?
         let threshold = 2;
         let result = race.cheat_paths(threshold);
         println!("Count > {}: {}", threshold, result.len());
@@ -181,13 +183,16 @@ fn main() {
                 count_by_saved.insert(pico, 1);
             }
         }
+        let mut sum = 0;
         for (saved, count) in count_by_saved {
+            sum += count;
             if count == 1 {
                 println!("There is one cheat that saves {} picoseconds.", saved);
             } else {
                 println!("There are {} cheats that save {} picoseconds.", count, saved);
             }
         }
+        println!("Thats a total of {}", sum);
     } else {
         println!("Please provide 1 argument: Filename");
     }
