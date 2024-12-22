@@ -1,4 +1,4 @@
-use crate::keypad::{Key, Keypad};
+use crate::keypad::Key;
 use crate::{NumericKey, NumericKeypad};
 use crate::Code;
 use pathfinding::prelude::bfs;
@@ -8,7 +8,7 @@ use pathfinding::prelude::bfs;
 // +---+---+---+
 // | < | v | > |
 // +---+---+---+
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct DirectionalKeypad {
     current: DirectionalKey,
     pub presses: Vec<DirectionalKey>,
@@ -57,36 +57,32 @@ impl DirectionalKeypad {
         result.into_iter().last().unwrap()
     }
 
-    fn valid_directions(&self) -> Vec<DirectionalKey> {
-        let mut v = Vec::new();
-        if !self.current.key_above().is_none() {
-            v.push(DirectionalKey::Up)
-        }
-        if !self.current.key_below().is_none() {
-            v.push(DirectionalKey::Down)
-        }
-        if !self.current.key_left().is_none() {
-            v.push(DirectionalKey::Left)
-        }
-        if !self.current.key_right().is_none() {
-            v.push(DirectionalKey::Right)
-        }
-        v
-    }
+    // fn valid_directions(&self) -> Vec<DirectionalKey> {
+    //     let mut v = Vec::new();
+    //     if !self.current.key_above().is_none() {
+    //         v.push(DirectionalKey::Up)
+    //     }
+    //     if !self.current.key_below().is_none() {
+    //         v.push(DirectionalKey::Down)
+    //     }
+    //     if !self.current.key_left().is_none() {
+    //         v.push(DirectionalKey::Left)
+    //     }
+    //     if !self.current.key_right().is_none() {
+    //         v.push(DirectionalKey::Right)
+    //     }
+    //     v
+    // }
 
-    fn operate(&mut self, operation: &DirectionalKey) {
-        match operation {
-            DirectionalKey::Activate => self.presses.push(self.current),
-            DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
-            DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
-            DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
-            DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
-        }
-    }
-
-    fn underlying_code(&self) -> &Vec<NumericKey> {
-        self.controlling_keypad.underlying_code()
-    }
+    // fn operate(&mut self, operation: &DirectionalKey) {
+    //     match operation {
+    //         DirectionalKey::Activate => self.presses.push(self.current),
+    //         DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
+    //         DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
+    //         DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
+    //         DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
+    //     }
+    // }
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Copy, Debug)]

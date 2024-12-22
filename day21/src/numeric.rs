@@ -1,4 +1,4 @@
-use crate::keypad::{Key, Keypad};
+use crate::keypad::Key;
 use crate::directional::DirectionalKey;
 
 // +---+---+---+
@@ -10,7 +10,7 @@ use crate::directional::DirectionalKey;
 // +---+---+---+
 //     | 0 | A |
 //     +---+---+
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct NumericKeypad {
     pub current: NumericKey,
     pub presses: Vec<NumericKey>
@@ -49,10 +49,6 @@ impl NumericKeypad {
             DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
             DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
         }
-    }
-
-    pub fn underlying_code(&self) -> &Vec<NumericKey> {
-        &self.presses
     }
 }
 

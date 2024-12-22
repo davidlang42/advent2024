@@ -47,7 +47,8 @@ fn main() {
             println!("Code: {}", code);
             let result = start.shortest_path_to_code(&code);
             let presses = result.presses_string();
-            println!("Result ({}): {}", presses.len(), presses);
+            println!("Shortest ({}): {}", presses.len(), presses);
+            println!("Final: {:?}", result);
             panic!();
         }
     } else {
