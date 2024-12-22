@@ -32,7 +32,7 @@ impl<K: Key> Keypad<K> {
         }
     }
 
-    pub fn presses_string(&self) -> String {
+    pub fn movements_string(&self) -> String {
         let mut s = String::new();
         for key in &self.movements {
             s.push(key.to_char());
@@ -49,14 +49,16 @@ impl<K: Key> Keypad<K> {
         for mut result in self.shortest_paths_to_key(&code.keys[index]) {
             result.movements.push(DirectionalKey::Activate);
             if index == code.keys.len() - 1 {
-                // this is a finished result
+                // this is a finished result, these will always be the shortest (due to astar_bag)
                 results.push(result);
             } else {
                 // continue (recurisively) to the next key
                 results.append(&mut result.shortest_paths_to_code_recursive(code, index + 1));
             }
         }
-        results
+        // filter out results which are no longer the shortest (due to combining with upstream results)
+        let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
+        results.into_iter().filter(|r| r.movements.len() == shortest).collect()
     }
 
     fn shortest_paths_to_key(&self, key: &K) -> Vec<Self> {
