@@ -104,23 +104,30 @@ impl CheatState {
         !self.start.is_none() && self.moves > 0
     }
 
-    fn next_state(&self, possible_end: &Pos) -> Self {
+    fn continue_cheat(&self) -> Option<Self> {
         if !self.is_active() {
            panic!("Called next_state() when not active");
         }
-        if self.moves == 1 {
-            Self {
+        if self.moves > 1 {
+            Some(Self {
                 start: self.start,
                 moves: self.moves - 1,
                 end: None
-            }
+            })
         } else {
-            Self {
-                start: self.start,
-                end: Some(*possible_end),
-                moves: 0
-            }
+            None // ran out of moves, can't continue
         }
+    }
+
+    fn end_cheat(&self, end: &Pos) -> Self {
+        if !self.is_active() {
+            panic!("Called end_cheat() when not active");
+         }
+         Self {
+            start: self.start,
+            end: Some(*end),
+            moves: 0
+         }
     }
 
     fn is_available(&self) -> bool {
@@ -134,7 +141,7 @@ impl CheatState {
         Self {
             start: Some(*start),
             end: None,
-            moves: 0
+            moves: 1
         }
     }
     
@@ -142,8 +149,18 @@ impl CheatState {
         let mut v = Vec::new();
         for adj in pos.adjacent(size) {
             if self.is_active() {
-                v.push(((adj, self.next_state(&adj)), 1));
+                if walls.contains(&adj) {
+                    if let Some(next_state) = self.continue_cheat() {
+                        v.push(((adj, next_state), 1));
+                    }
+                } else {
+                    let next_state = self.end_cheat(&adj);
+                    if !existing_solutions.contains_key(&next_state) {
+                        v.push(((adj, next_state), 1));
+                    }
+                }
             } else {
+                //TODO up to here
                 if self.is_available() && !existing_solutions.contains_key(&self) {
                     let cheat_started = self.start_cheat(&adj);
                     v.push(((adj, cheat_started), 1));
