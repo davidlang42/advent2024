@@ -1,7 +1,7 @@
 use crate::Code;
 use crate::directional::{Direction, DirectionalKey};
 use std::hash::Hash;
-use pathfinding::prelude::astar;
+use pathfinding::prelude::astar_bag;
 
 pub trait Key : Sized + Default + Clone + Hash + Eq + PartialEq {
     fn from_char(c: char) -> Self;
@@ -40,18 +40,28 @@ impl<K: Key> Keypad<K> {
         s
     }
 
-    pub fn shortest_path_to_code(&self, code: &Code<K>) -> Self {
-        let mut result = self.clone();
-        for key in &code.keys {
-            result = result.shortest_path_to_key(key);
-            result.movements.push(DirectionalKey::Activate);
-        }
-        result
+    pub fn shortest_paths_to_code(&self, code: &Code<K>) -> Vec<Self> {
+        self.shortest_paths_to_code_recursive(code, 0)
     }
 
-    fn shortest_path_to_key(&self, key: &K) -> Self {
-        let (result, _) = astar(self, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
-        result.into_iter().last().unwrap()
+    fn shortest_paths_to_code_recursive(&self, code: &Code<K>, index: usize) -> Vec<Self> {
+        let mut results = Vec::new();
+        for mut result in self.shortest_paths_to_key(&code.keys[index]) {
+            result.movements.push(DirectionalKey::Activate);
+            if index == code.keys.len() - 1 {
+                // this is a finished result
+                results.push(result);
+            } else {
+                // continue (recurisively) to the next key
+                results.append(&mut result.shortest_paths_to_code_recursive(code, index + 1));
+            }
+        }
+        results
+    }
+
+    fn shortest_paths_to_key(&self, key: &K) -> Vec<Self> {
+        let (results, _) = astar_bag(self, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
+        results.into_iter().map(|r| r.into_iter().last().unwrap()).collect()
     }
 
     fn successors(&self) -> Vec<(Self, usize)> {

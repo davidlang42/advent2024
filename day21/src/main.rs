@@ -20,10 +20,10 @@ fn main() {
         let start = Keypad::<NumericKey>::new();
         for code in codes {
             println!("Code: {}", code);
-            let result = start.shortest_path_to_code(&code);
-            let presses = result.presses_string();
-            println!("Shortest ({}): {}", presses.len(), presses);
-            println!("Final: {:?}", result);
+            for result in start.shortest_paths_to_code(&code) {
+                let presses = result.presses_string();
+                println!("Shortest ({}): {}", presses.len(), presses);
+            }
             panic!();
         }
     } else {
