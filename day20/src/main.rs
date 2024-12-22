@@ -140,7 +140,7 @@ impl CheatState {
         Self {
             start: Some(*start),
             end: None,
-            moves: 2 - 1 // -1 because we started the cheat in the previous position
+            moves: 20 - 1 // -1 because we started the cheat in the previous position
         }
     }
     
