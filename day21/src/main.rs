@@ -39,11 +39,17 @@ fn solve_for<K: Key>(code: &Code<K>, log_description: &str) -> Vec<Keypad<K>> {
     let mut results = Vec::new();
     let start = Keypad::<K>::new();
     for result in start.shortest_paths_to_code(&code) {
-        println!("[{}] Shortest ({}): {}", log_description, result.movements.len(), result.movements_string());
         if result.movements_string() == "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A" {
             panic!("GOT IT");
         }
         results.push(result);
+    }
+    // filter out results which are no longer the shortest (due to combining with upstream results)
+    let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
+    results = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
+    // print shortest
+    for result in &results {
+        println!("[{}] Shortest ({}): {}", log_description, result.movements.len(), result.movements_string());
     }
     results
 }
