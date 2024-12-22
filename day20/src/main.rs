@@ -94,21 +94,32 @@ impl Pos {
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct CheatState {
     start: Option<Pos>,
+    end: Option<Pos>,
     moves: usize
 }
 
+//TODO cheat state
 impl CheatState {
     fn is_active(&self) -> bool {
         !self.start.is_none() && self.moves > 0
     }
 
-    fn next_state(&self) -> Self {
+    fn next_state(&self, possible_end: &Pos) -> Self {
         if !self.is_active() {
            panic!("Called next_state() when not active");
         }
-        Self {
-            start: self.start,
-            moves: self.moves - 1
+        if self.moves == 1 {
+            Self {
+                start: self.start,
+                moves: self.moves - 1,
+                end: None
+            }
+        } else {
+            Self {
+                start: self.start,
+                end: Some(*possible_end),
+                moves: 0
+            }
         }
     }
 
@@ -122,8 +133,27 @@ impl CheatState {
         }
         Self {
             start: Some(*start),
+            end: None,
             moves: 0
         }
+    }
+    
+    fn successors(&self, pos: &Pos, size: &Pos, walls: &HashSet<Pos>, existing_solutions: &HashMap<CheatState, usize>) -> Vec<((Pos, CheatState),u32)> {
+        let mut v = Vec::new();
+        for adj in pos.adjacent(size) {
+            if self.is_active() {
+                v.push(((adj, self.next_state(&adj)), 1));
+            } else {
+                if self.is_available() && !existing_solutions.contains_key(&self) {
+                    let cheat_started = self.start_cheat(&adj);
+                    v.push(((adj, cheat_started), 1));
+                }
+                if !walls.contains(&adj) {
+                    v.push(((adj, self.clone()), 1));
+                }
+            }
+        }
+        v
     }
 }
 
@@ -138,45 +168,28 @@ impl Race {
         result.len() - 1
     }
 
-    fn successors(pos: &Pos, size: &Pos, cheat: &CheatState, walls: &HashSet<Pos>, existing_solutions: &HashMap<Pos, usize>) -> Vec<((Pos, CheatState),u32)> {
-        let mut v = Vec::new();
-        for adj in pos.adjacent(size) {
-            if cheat.is_active() {
-                v.push(((adj, cheat.next_state()), 1));
-            } else {
-                if cheat.is_available() && !existing_solutions.contains_key(&adj) {
-                    let cheat_started = cheat.start_cheat(&adj);
-                    v.push(((adj, cheat_started), 1));
-                }
-                if !walls.contains(&adj) {
-                    v.push(((adj, cheat.clone()), 1));
-                }
-            }
-        }
-        v
-    }
-
-    fn cheat_paths(&self, threshold: usize) -> HashMap<Pos, usize> { // cheat start : picoseconds saved
+    fn cheat_paths(&self, threshold: usize) -> HashMap<CheatState, usize> { // cheat : picoseconds saved
         let no_cheat = self.no_cheat_path();
         let not_yet_cheated = CheatState {
             start: None,
+            end: None,
             moves: 0
         };
         let mut solutions_above_threshold = HashMap::new();
         while let Some(result) = astar(
             &(self.start, not_yet_cheated.clone()),
-            |(p, c)| Self::successors(p, &self.size, c, &self.walls, &solutions_above_threshold),
+            |(p, c)| c.successors(p, &self.size, &self.walls, &solutions_above_threshold),
             |(p, _c)| p.minimum_distance(&self.end),
             |(p, _c)| *p == self.end
         ) {
-            let (_, final_cheat) = result.0.last().unwrap();
             let pico_saved = no_cheat - (result.0.len() - 1);
             if pico_saved < threshold {
                 break;
             }
+            let (_, final_cheat) = result.0.into_iter().last().unwrap();
             let cheat_start = final_cheat.start.unwrap();
             println!("Start at {:?}, saves {} picoseconds", cheat_start, pico_saved);
-            solutions_above_threshold.insert(cheat_start, pico_saved);
+            solutions_above_threshold.insert(final_cheat, pico_saved);
         }
         solutions_above_threshold
     }
