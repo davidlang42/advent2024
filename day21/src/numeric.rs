@@ -1,5 +1,6 @@
 use crate::keypad::Key;
-use crate::directional::DirectionalKey;
+use crate::directional::{Direction, DirectionaKey};
+use pathfinding::prelude::bfs;
 
 // +---+---+---+
 // | 7 | 8 | 9 |
@@ -13,42 +14,65 @@ use crate::directional::DirectionalKey;
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct NumericKeypad {
     pub current: NumericKey,
-    pub presses: Vec<NumericKey>
+    pub movements: Vec<DirectionalKey>//TODO exclude this from Eq/PartialEq
 }
 
 impl NumericKeypad {
     pub fn new() -> Self {
         Self{
             current: NumericKey::Activate,
-            presses: Vec::new()
+            movements: Vec::new()
         }
     }
 
-    pub fn valid_directions(&self) -> Vec<DirectionalKey> {
+    pub fn valid_moves(&self) -> Vec<Direction> {
         let mut v = Vec::new();
         if !self.current.key_above().is_none() {
-            v.push(DirectionalKey::Up)
+            v.push(Direction::Up)
         }
         if !self.current.key_below().is_none() {
-            v.push(DirectionalKey::Down)
+            v.push(Direction::Down)
         }
         if !self.current.key_left().is_none() {
-            v.push(DirectionalKey::Left)
+            v.push(Direction::Left)
         }
         if !self.current.key_right().is_none() {
-            v.push(DirectionalKey::Right)
+            v.push(Direction::Right)
         }
         v
     }
 
-    pub fn operate(&mut self, operation: &DirectionalKey) {
+    pub fn move_current(&mut self, direction: &Direction) {
         match operation {
-            DirectionalKey::Activate => self.presses.push(self.current),
-            DirectionalKey::Up => self.current = self.current.key_above().unwrap(),
-            DirectionalKey::Down => self.current = self.current.key_below().unwrap(),
-            DirectionalKey::Left => self.current = self.current.key_left().unwrap(),
-            DirectionalKey::Right => self.current = self.current.key_right().unwrap(),
+            Direction::Up => self.current = self.current.key_above().unwrap(),
+            Direction::Down => self.current = self.current.key_below().unwrap(),
+            Direction::Left => self.current = self.current.key_left().unwrap(),
+            Direction::Right => self.current = self.current.key_right().unwrap(),
         }
+    }
+
+    pub fn shortest_path_to_code(&self, code: &Code<NumericKey>) -> Self {
+        let mut result = self.clone();
+        for key in &code.keys {
+            result = result.shortest_path_to_key(key);
+            result.movements.push(DirectionalKey::Activate);
+        }
+        result
+    }
+
+    fn successors(&self) -> Vec<Self> {
+        let mut v = Vec::new();
+        for direction in self.valid_moves() {
+            let mut clone = self.clone();
+            clone.move_current(&direction);
+            v.push(clone);
+        }
+        v
+    }
+
+    fn shortest_path_to_key(&self, key: &NumericKey) -> Self {
+        let result = bfs(self, |kp| kp.successors(), |kp| kp.current == *key).expect("No solution");
+        result.into_iter().last().unwrap()
     }
 }
 

@@ -17,7 +17,7 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
-        let start = DirectionalKeypad::new(NumericKeypad::new());
+        let start = NumericKeypad::new();
         for code in codes {
             println!("Code: {}", code);
             let result = start.shortest_path_to_code(&code);
