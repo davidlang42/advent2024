@@ -134,7 +134,7 @@ impl Race {
                 }
                 if let Some((_, cheat_length)) = astar(
                     start,
-                    |p| p.adjacent(&self.size).into_iter().filter(|p| self.walls.contains(p) || *p == *end).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+                    |p| p.adjacent(&self.size).into_iter().map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
                     |p| p.minimum_distance(end),
                     |p| *p == *end
                 ) {
@@ -161,7 +161,7 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
-        let threshold = 50;
+        let threshold = 100;
         let moves = 20;
         let result = race.cheat_paths(moves, threshold);
         println!("Count > {}: {}", threshold, result.len());
