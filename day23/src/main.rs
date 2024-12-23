@@ -62,7 +62,60 @@ impl Network {
     }
 
     fn largest(&self) -> Vec<String> {
-        
+        let mut largest: Option<Lan> = None;
+        for l in self.all_lans() {
+            if largest.is_none() || largest.as_ref().unwrap().size() < l.size() {
+                largest = Some(l);
+            }
+        }
+        largest.unwrap().0.into_iter().collect::<Vec<String>>()
+    }
+
+    fn all_lans(&self) -> Vec<Lan> {
+        let mut v = Vec::new();
+        for a in self.0.keys() {
+            let lan = Lan::from(a.clone());
+            v.append(&mut lan.expand(self));
+        }
+        v
+    }
+}
+
+#[derive(Clone)]
+struct Lan(HashSet<String>);
+
+impl Lan {
+    fn size(&self) -> usize {
+        self.0.len()
+    }
+
+    fn from(computer: String) -> Self {
+        let mut set = HashSet::new();
+        set.insert(computer);
+        Self(set)
+    }
+
+    fn expand(self, network: &Network) -> Vec<Self> {
+        let sub_sets: Vec<_> = self.0.iter().map(|pc| network.0.get(pc).unwrap()).collect();
+        let mut common = sub_sets[0].clone();
+        for i in 1..sub_sets.len() {
+            common = common.intersection(&sub_sets[i]).cloned().collect();
+        }
+        if common.len() == 0 {
+            // no further expansion possible
+            vec![self]
+        } else {
+            // recurse
+            let mut options = Vec::new();
+            for c in common {
+                let mut option = self.clone();
+                option.0.insert(c.clone());
+                for sub_option in option.expand(network) {
+                    options.push(sub_option);
+                }
+            }
+            options
+        }
     }
 }
 
@@ -75,7 +128,7 @@ fn main() {
         let connections: Vec<Pair> = text.lines().map(|s| s.parse().unwrap()).collect();
         let network = Network::from(connections);
         let triples = network.triples("t");
-        println!("Triples ({}):", triples.len());
+        println!("Triples: {}", triples.len());
         let mut largest = network.largest();
         largest.sort();
         for s in largest {
