@@ -21,7 +21,7 @@ fn main() {
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let mut sum = 0;
         for code in codes {
-            let results = robot_indirection_numeric(&code, 2);
+            let results = robot_indirection_numeric(&code, 25);
             let shortest: usize = results.iter().map(|r| r.len()).min().unwrap();
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;
@@ -50,6 +50,7 @@ fn robot_indirection_numeric(code: &Code<NumericKey>, layers_of_indirection: usi
 }
 
 fn robot_indirection_directional(code: &Code<DirectionalKey>, layers_of_indirection: usize, cache: &mut HashMap<(DirectionalKey, Vec<DirectionalKey>), Vec<Keypad<DirectionalKey>>>) -> Vec<Vec<DirectionalKey>> {
+    println!("Starting layers remaining: {}", layers_of_indirection);
     if layers_of_indirection == 0 {
         solve_for(&code, cache)
     } else {
