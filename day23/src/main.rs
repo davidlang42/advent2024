@@ -2,10 +2,51 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
-use crate::fast::{FastNetwork, Selection};
+use crate::fast::FastNetwork;
 //use std::time::Instant;
 
 type Computer = [char; 2];
+
+#[derive(Clone, Debug)]
+struct Selection<const N: usize>([bool; N]);
+
+impl<const N: usize> Selection<N> {
+    fn new() -> Self {
+        Self([false; N])
+    }
+
+    fn one(index: usize) -> Self {
+        let mut bools = [false; N];
+        bools[index] = true;
+        Self(bools)
+    }
+
+    fn selected(&self) -> Vec<usize> {
+        let mut indicies = Vec::new();
+        for i in 0..N {
+            if self.0[i] {
+                indicies.push(i);
+            }
+        }
+        indicies
+    }
+
+    fn count(&self) -> usize {
+        let mut count = 0;
+        for i in 0..N {
+            if self.0[i] {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    fn and(&mut self, other: &Self) {
+        for i in 0..N {
+            self.0[i] &= other.0[i]
+        }
+    }
+}
 
 struct Pair(Computer, Computer);
 
@@ -77,7 +118,7 @@ impl Network {
 
     fn to_fast<const N: usize>(&self) -> FastNetwork<N> {
         if self.pcs.len() != N {
-            panic!("Wrong length");
+            panic!("Wrong length: {}", self.pcs.len());
         }
         let mut pcs = Vec::new();
         let mut map = Vec::new();
@@ -95,75 +136,6 @@ impl Network {
             map: map.try_into().unwrap()
         }
     }
-
-    fn largest(&self) -> Lan {
-        let mut largest: Option<Lan> = None;
-        // let mut avoid = HashSet::new();
-        // let mut last = Instant::now();
-        // let mut expand_cache = HashMap::new();
-        // let mut common_cache = HashMap::new();
-        for a in self.map.keys() {
-            // expand_cache.clear();
-            // common_cache.clear();
-            // println!("Starting {:?} ({}/{}={}%)", a, avoid.len(), self.map.len(), avoid.len() as f64 * 100.0 / self.map.len() as f64);
-            let lan = Lan::from(a.clone());
-            largest = Some(lan.largest_expansion(self, largest));
-            // avoid.insert(*a);
-            // let duration = Instant::now() - last;
-            // println!("Took {}s (expand cache: {}, common cache: {})", duration.as_secs(), expand_cache.len(), common_cache.len());
-            // last = Instant::now();
-        }
-        largest.unwrap()
-    }
-
-    fn common_connections(&self, pcs: &HashSet<Computer>) -> HashSet<Computer> {
-        let mut common = HashSet::new();
-        for (other_pc, other_pc_connects_to) in &self.map {
-            if pcs.iter().all(|pc| other_pc_connects_to.contains(pc)) {
-                common.insert(other_pc.clone());
-            }
-        }
-        common
-    }
-}
-
-#[derive(Clone)]
-struct Lan(HashSet<Computer>);
-
-impl Lan {
-    fn size(&self) -> usize {
-        self.0.len()
-    }
-
-    fn from(computer: Computer) -> Self {
-        let mut set = HashSet::new();
-        set.insert(computer);
-        Self(set)
-    }
-
-    fn largest_expansion(self, network: &Network, mut largest: Option<Self>) -> Self {
-        let common = network.common_connections(&self.0);
-        if common.len() == 0 {
-            // no further expansion possible
-            if let Some(existing) = largest {
-                if self.size() > existing.size() {
-                    println!("New largest: {:?}", self.0);
-                    return self;
-                } else {
-                    return existing;
-                }
-            } else {
-                println!("Default largest: {:?}", self.0);
-                return self;
-            }
-        }
-        for c in common {
-            let mut option = self.clone();
-            option.0.insert(c.clone());
-            largest = Some(option.largest_expansion(network, largest));
-        }
-        largest.unwrap()
-    }
 }
 
 fn main() {
@@ -176,12 +148,21 @@ fn main() {
         let network = Network::from(connections);
         let triples = network.triples('t');
         println!("Triples: {}", triples.len());
-        let mut largest: Vec<Computer> = network.largest().0.into_iter().collect();
-        largest.sort();
-        for s in largest {
-            print!("{}{}", s[0], s[1]);
+        if network.pcs.len() == 16 {
+            let fast: FastNetwork<16> = network.to_fast();
+            let largest = fast.largest();
+            for i in largest.selected() {
+                print!("{}{}", fast.pcs[i][0], fast.pcs[i][1]);
+            }
+            println!("");
+        } else if network.pcs.len() == 520 {
+            let fast: FastNetwork<520> = network.to_fast();
+            let largest = fast.largest();
+            for i in largest.selected() {
+                print!("{}{}", fast.pcs[i][0], fast.pcs[i][1]);
+            }
+            println!("");
         }
-        println!("");
     } else {
         println!("Please provide 1 argument: Filename");
     }
