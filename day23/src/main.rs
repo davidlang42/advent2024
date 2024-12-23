@@ -129,7 +129,8 @@ impl Network {
         FastNetwork {
             pcs: pcs.try_into().unwrap(),
             map: map.try_into().unwrap(),
-            common_cache: HashMap::new()
+            common_cache: HashMap::new(),
+            expand_cache: HashMap::new()
         }
     }
 }

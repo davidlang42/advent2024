@@ -6,7 +6,8 @@ use std::collections::HashMap;
 pub struct FastNetwork<const N: usize> {
     pub pcs: [Computer; N],
     pub map: [Selection<N>; N],
-    pub common_cache: HashMap<Selection<N>, Selection<N>>
+    pub common_cache: HashMap<Selection<N>, Selection<N>>,
+    pub expand_cache: HashMap<Selection<N>, Selection<N>>
 }
 
 impl<const N: usize> FastNetwork<N> {
@@ -46,21 +47,27 @@ impl<const N: usize> FastNetwork<N> {
     }
 
     fn expand_selection_to_largest(&mut self, lan: Selection<N>) -> Selection<N> {
-        let common = self.common_connections(&lan);
-        if common.count() == 0 {
-            // no further expansion possible
-            return lan;
-        }
-        let mut largest: Option<Selection<N>> = None;
-        for i in common.selected() {
-            let mut option = lan.clone();
-            option.0[i] = true;
-            let result = self.expand_selection_to_largest(option);
-            if largest.is_none() || largest.as_ref().unwrap().count() < result.count() {
-                largest = Some(result);
+        if let Some(cached) = self.expand_cache.get(&lan) {
+            cached.clone()
+        } else {
+            let common = self.common_connections(&lan);
+            if common.count() == 0 {
+                // no further expansion possible
+                return lan;
             }
+            let mut largest: Option<Selection<N>> = None;
+            for i in common.selected() {
+                let mut option = lan.clone();
+                option.0[i] = true;
+                let result = self.expand_selection_to_largest(option);
+                if largest.is_none() || largest.as_ref().unwrap().count() < result.count() {
+                    largest = Some(result);
+                }
+            }
+            let result = largest.unwrap();
+            self.expand_cache.insert(lan, result.clone());
+            result
         }
-        largest.unwrap()
     }
 
     fn common_connections(&mut self, pcs: &Selection<N>) -> Selection<N> {
