@@ -21,7 +21,7 @@ fn main() {
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let mut sum = 0;
         for code in codes {
-            let results = robot_indirection_numeric(&code);
+            let results = robot_indirection(&code, 2);
             let shortest: usize = results.iter().map(|r| r.len()).min().unwrap();
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;
@@ -34,32 +34,21 @@ fn main() {
     }
 }
 
-fn robot_indirection_numeric<K: Key>(code: &Code<K>) -> Vec<Vec<DirectionalKey>> {
-    let mut final_results = Vec::new();
-    let results = solve_for(code, "1");
-    for r in results {
-        let code2 = Code { keys: r };
-        final_results.append(&mut robot_indirection2(&code2));
+fn robot_indirection<K: Key>(code: &Code<K>, layers_of_indirection: usize) -> Vec<Vec<DirectionalKey>> {
+    if layers_of_indirection == 0 {
+        solve_for(&code)
+    } else {
+        let mut final_results = Vec::new();
+        let results = solve_for(code);
+        for r in results {
+            let inner_code = Code { keys: r };
+            final_results.append(&mut robot_indirection(&inner_code, layers_of_indirection - 1));
+        }
+        final_results
     }
-    final_results
 }
 
-fn robot_indirection2(code: &Code<DirectionalKey>) -> Vec<Vec<DirectionalKey>> {
-    let mut final_results = Vec::new();
-    let results = solve_for(&code, "2");
-    for r in results {
-        let code3 = Code { keys: r };
-        final_results.append(&mut robot_indirection3(&code3));
-    }
-    final_results
-}
-
-fn robot_indirection3(code: &Code<DirectionalKey>) -> Vec<Vec<DirectionalKey>> {
-    solve_for(&code, "3")
-}
-
-fn solve_for<K: Key>(code: &Code<K>, _log_description: &str) -> Vec<Vec<DirectionalKey>> {
-    //println!("[{}] Code: {}", log_description, code);
+fn solve_for<K: Key>(code: &Code<K>) -> Vec<Vec<DirectionalKey>> {
     let start = Keypad::<K>::new();
     let mut cache = HashMap::new();
     let results = start.shortest_paths_to_code(&code, &mut cache);
