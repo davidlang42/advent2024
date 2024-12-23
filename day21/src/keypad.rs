@@ -53,8 +53,8 @@ impl<K: Key> Keypad<K> {
     }
 
     fn shortest_paths_to_code_recursive(start_key: &K, code: &[K], cache: &mut HashMap<(K, Vec<K>), Vec<Self>>) -> Vec<Self> {
-        let code_vec: Vec<_> = code.into();
-        if let Some(existing) = cache.get(&(*start_key,code_vec.clone())) {
+        let cache_key: (K, Vec<_>) = (*start_key, code.into());
+        if let Some(existing) = cache.get(&cache_key) {
             existing.clone()
         } else {
             let mut results = Vec::new();
@@ -77,7 +77,7 @@ impl<K: Key> Keypad<K> {
             let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
             let final_result: Vec<_> = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
             // save in cache
-            cache.insert((*start_key, code_vec), final_result.clone());
+            cache.insert(cache_key, final_result.clone());
             final_result
         }
     }
