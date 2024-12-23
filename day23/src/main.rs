@@ -3,7 +3,9 @@ use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
 
-struct Pair(String, String);
+type Computer = String;
+
+struct Pair(Computer, Computer);
 
 impl FromStr for Pair {
     type Err = String;
@@ -18,7 +20,7 @@ impl FromStr for Pair {
 }
 
 struct Network{
-    map: HashMap<String, HashSet<String>>
+    map: HashMap<Computer, HashSet<Computer>>
 }
 
 impl Network {
@@ -37,7 +39,7 @@ impl Network {
         map
     }
 
-    fn add(&mut self, k: String, v: String) {
+    fn add(&mut self, k: Computer, v: Computer) {
         if let Some(existing) = self.map.get_mut(&k) {
             existing.insert(v);
         } else {
@@ -47,7 +49,7 @@ impl Network {
         }
     }
 
-    fn triples(&self, starts_with: &str) -> HashSet<(String, String, String)> {
+    fn triples(&self, starts_with: &str) -> HashSet<(Computer, Computer, Computer)> {
         let mut set = HashSet::new();
         for (a, a_set) in &self.map {
             for b in a_set {
@@ -65,14 +67,14 @@ impl Network {
         set
     }
 
-    fn largest(&self) -> Vec<String> {
+    fn largest(&self) -> Vec<Computer> {
         let mut largest: Option<Lan> = None;
         for l in self.all_lans() {
             if largest.is_none() || largest.as_ref().unwrap().size() < l.size() {
                 largest = Some(l);
             }
         }
-        largest.unwrap().0.into_iter().collect::<Vec<String>>()
+        largest.unwrap().0.into_iter().collect::<Vec<Computer>>()
     }
 
     fn all_lans(&self) -> Vec<Lan> {
@@ -85,7 +87,7 @@ impl Network {
         v
     }
 
-    fn common_connections(&self, pcs: &HashSet<String>, cache: &mut HashMap<Vec<String>,HashSet<String>>) -> HashSet<String> {
+    fn common_connections(&self, pcs: &HashSet<Computer>, cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>) -> HashSet<Computer> {
         let mut pcs_vec: Vec<_> = pcs.iter().cloned().collect();
         pcs_vec.sort();
         if let Some(cached) = cache.get(&pcs_vec) {
@@ -104,20 +106,20 @@ impl Network {
 }
 
 #[derive(Clone)]
-struct Lan(HashSet<String>);
+struct Lan(HashSet<Computer>);
 
 impl Lan {
     fn size(&self) -> usize {
         self.0.len()
     }
 
-    fn from(computer: String) -> Self {
+    fn from(computer: Computer) -> Self {
         let mut set = HashSet::new();
         set.insert(computer);
         Self(set)
     }
 
-    fn expand(self, network: &Network, cache: &mut HashMap<Vec<String>,HashSet<String>>) -> Vec<Self> {
+    fn expand(self, network: &Network, cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>) -> Vec<Self> {
         let common = network.common_connections(&self.0, cache);
         if common.len() == 0 {
             // no further expansion possible
