@@ -79,10 +79,11 @@ impl Network {
 
     fn all_lans(&self) -> Vec<Lan> {
         let mut v = Vec::new();
-        let mut cache = HashMap::new();
+        let mut common_cache = HashMap::new();
+        let mut expand_cache = HashMap::new();
         for a in self.map.keys() {
             let lan = Lan::from(a.clone());
-            v.append(&mut lan.expand(self, &mut cache));
+            v.append(&mut lan.expand(self, &mut expand_cache, &mut common_cache));
         }
         v
     }
@@ -119,24 +120,31 @@ impl Lan {
         Self(set)
     }
 
-    fn expand(self, network: &Network, cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>) -> Vec<Self> {
-        let common = network.common_connections(&self.0, cache);
-        if common.len() == 0 {
-            // no further expansion possible
-            if self.0.len() > 12 {
-                println!("{:?}", self.0);
+    fn expand(self, network: &Network, expand_cache: &mut HashMap<Vec<Computer>,Vec<Self>>, common_cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>) -> Vec<Self> {
+        let mut self_vec: Vec<_> = self.0.iter().cloned().collect();
+        self_vec.sort();
+        if let Some(cached) = expand_cache.get(&self_vec) {
+            cached.clone()
+        } else {
+            let common = network.common_connections(&self.0, common_cache);
+            if common.len() == 0 {
+                // no further expansion possible
+                if self.0.len() > 12 {
+                    println!("{:?}", self.0);
+                }
+                return vec![self];
             }
-            return vec![self];
-        }
-        let mut options = Vec::new();
-        for c in common {
-            let mut option = self.clone();
-            option.0.insert(c.clone());
-            for sub_option in option.expand(network, cache) {
-                options.push(sub_option);
+            let mut options = Vec::new();
+            for c in common {
+                let mut option = self.clone();
+                option.0.insert(c.clone());
+                for sub_option in option.expand(network, expand_cache, common_cache) {
+                    options.push(sub_option);
+                }
             }
+            expand_cache.insert(self_vec, options.clone());
+            options
         }
-        options
     }
 }
 
