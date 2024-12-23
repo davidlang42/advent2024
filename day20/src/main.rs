@@ -109,7 +109,7 @@ impl Race {
 
     fn cheat_paths(&self, moves: u32, threshold: u32) -> HashMap<Cheat, usize> { // cheat : picoseconds saved
         // find all poses we go through on the no cheat path
-        let (no_cheat_path, total_no_cheat_length) = astar(
+        let (no_cheat_path, _) = astar(
             &self.start,
             |p| p.adjacent(&self.size).into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
             |p| p.minimum_distance(&self.end),
@@ -117,7 +117,6 @@ impl Race {
         ).expect("No solution");
         // go through each pos and look for paths through walls which are less than 20 long
         let mut cheat_paths = HashMap::new();
-        let mut skip = 1;
         for s in 0..no_cheat_path.len() {
             if s % 100 == 0 {
                 println!("Start {}/{} ({}%)", s, no_cheat_path.len(), s as f64 * 100.0 / no_cheat_path.len() as f64);
@@ -133,32 +132,18 @@ impl Race {
                 if no_cheat_length == minimum_distance {
                     continue; // cheat cant possibly help
                 }
-                if let Some((cheat_path, cheat_length)) = astar(
+                if let Some((_, cheat_length)) = astar(
                     start,
                     |p| p.adjacent(&self.size).into_iter().filter(|p| self.walls.contains(p) || *p == *end).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
                     |p| p.minimum_distance(end),
                     |p| *p == *end
                 ) {
-                    let total_cheat_length = s as u32 + cheat_length + no_cheat_path.len() as u32 - e as u32 - 1;
                     let pico_saved = no_cheat_length - cheat_length;
                     if cheat_length <= moves && cheat_length < no_cheat_length && pico_saved >= threshold {
                         let cheat = Cheat {
                             start: *start,
                             end: *end
                         };
-                        if pico_saved == 50 {
-                            if skip == 0 {
-                                println!("50: {:?}", cheat);
-                                println!("cheat-len: {}, no-cheat-len: {}, pico: {}, total_cheat_l: {}, total_no_cheat_l: {}", cheat_length, no_cheat_length, pico_saved, total_cheat_length, total_no_cheat_length);
-                                // println!("cheat path: {}", cheat_path.len());
-                                // for p in cheat_path {
-                                //     println!("{:?}", p)
-                                // }
-                                panic!("HERE")
-                            } else {
-                                skip -= 1;
-                            }
-                        }
                         cheat_paths.insert(cheat, pico_saved as usize);
                     }
                 }
