@@ -17,11 +17,15 @@ impl FromStr for Pair {
     }
 }
 
-struct Network(HashMap<String, HashSet<String>>);
+struct Network{
+    map: HashMap<String, HashSet<String>>
+}
 
 impl Network {
     fn new() -> Self {
-        Self(HashMap::new())
+        Self {
+            map: HashMap::new()
+        }
     }
 
     fn from(pairs: Vec<Pair>) -> Self {
@@ -34,20 +38,20 @@ impl Network {
     }
 
     fn add(&mut self, k: String, v: String) {
-        if let Some(existing) = self.0.get_mut(&k) {
+        if let Some(existing) = self.map.get_mut(&k) {
             existing.insert(v);
         } else {
             let mut new = HashSet::new();
             new.insert(v);
-            self.0.insert(k, new);
+            self.map.insert(k, new);
         }
     }
 
     fn triples(&self, starts_with: &str) -> HashSet<(String, String, String)> {
         let mut set = HashSet::new();
-        for (a, a_set) in &self.0 {
+        for (a, a_set) in &self.map {
             for b in a_set {
-                if let Some(b_set) = self.0.get(b) {
+                if let Some(b_set) = self.map.get(b) {
                     for c in a_set.intersection(&b_set) {
                         let mut triple = vec![a, b, c];
                         if triple.iter().any(|s| s.starts_with(starts_with)) {
@@ -73,23 +77,32 @@ impl Network {
 
     fn all_lans(&self) -> Vec<Lan> {
         let mut v = Vec::new();
-        for a in self.0.keys() {
+        let mut cache = HashMap::new();
+        for a in self.map.keys() {
+            println!("Started {}", a);
             let lan = Lan::from(a.clone());
-            v.append(&mut lan.expand(self));
+            v.append(&mut lan.expand(self, &mut cache));
         }
         v
     }
 
-    fn common_connections(&self, pcs: &HashSet<String>) -> HashSet<String> {
-        let sub_sets: Vec<_> = pcs.iter().map(|pc| self.0.get(pc).unwrap()).collect();
-        let mut common = sub_sets[0].clone();
-        for i in 1..sub_sets.len() {
-            common = common.intersection(&sub_sets[i]).cloned().collect();
-            if common.len() == 0 {
-                return HashSet::new()
-            } 
+    fn common_connections(&self, pcs: &HashSet<String>, cache: &mut HashMap<Vec<String>,HashSet<String>>) -> HashSet<String> {
+        let mut pcs_vec: Vec<_> = pcs.iter().cloned().collect();
+        pcs_vec.sort();
+        if let Some(cached) = cache.get(&pcs_vec) {
+            cached.clone()
+        } else {
+            let sub_sets: Vec<_> = pcs.iter().map(|pc| self.map.get(pc).unwrap()).collect();
+            let mut common = sub_sets[0].clone();
+            for i in 1..sub_sets.len() {
+                common = common.intersection(&sub_sets[i]).cloned().collect();
+                if common.len() == 0 {
+                    return HashSet::new()
+                } 
+            }
+            cache.insert(pcs_vec, common.clone());
+            common
         }
-        common
     }
 }
 
@@ -107,8 +120,8 @@ impl Lan {
         Self(set)
     }
 
-    fn expand(self, network: &Network) -> Vec<Self> {
-        let common = network.common_connections(&self.0);
+    fn expand(self, network: &Network, cache: &mut HashMap<Vec<String>,HashSet<String>>) -> Vec<Self> {
+        let common = network.common_connections(&self.0, cache);
         if common.len() == 0 {
             // no further expansion possible
             return vec![self];
@@ -117,7 +130,7 @@ impl Lan {
         for c in common {
             let mut option = self.clone();
             option.0.insert(c.clone());
-            for sub_option in option.expand(network) {
+            for sub_option in option.expand(network, cache) {
                 options.push(sub_option);
             }
         }
