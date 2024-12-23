@@ -2,6 +2,7 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use pathfinding::prelude::astar;
+use pathfinding::prelude::astar_bag;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
@@ -140,7 +141,7 @@ impl CheatState {
         Self {
             start: Some(*start),
             end: None,
-            moves: 2 - 1 // -1 because we started the cheat in the previous position
+            moves: 20 - 1 // -1 because we started the cheat in the previous position
         }
     }
     
@@ -175,13 +176,13 @@ impl CheatState {
 
 impl Race {
     fn no_cheat_path(&self) -> usize {
-        let (result, _) = astar(
+        let (_, no_cheat_path) = astar(
             &self.start,
             |p| p.adjacent(&self.size).into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
             |p| p.minimum_distance(&self.end),
             |p| *p == self.end
         ).expect("No solution");
-        result.len() - 1
+        no_cheat_path as usize
     }
 
     fn cheat_paths(&self, threshold: usize) -> HashMap<CheatState, usize> { // cheat : picoseconds saved
@@ -192,20 +193,23 @@ impl Race {
             moves: 0
         };
         let mut solutions_above_threshold = HashMap::new();
-        while let Some(result) = astar(
+        while let Some((result, cheat_path)) = astar_bag(
             &(self.start, not_yet_cheated.clone()),
             |(p, c)| c.successors(p, &self.size, &self.walls, &solutions_above_threshold),
             |(p, _c)| p.minimum_distance(&self.end),
             |(p, _c)| *p == self.end
         ) {
-            let pico_saved = no_cheat - (result.0.len() - 1);
+            let pico_saved = no_cheat - cheat_path as usize;
             if pico_saved < threshold {
                 break;
             }
-            let (_, final_cheat) = result.0.into_iter().last().unwrap();
-            let cheat_start = final_cheat.start.unwrap();
-            println!("Start at {:?}, saves {} picoseconds", cheat_start, pico_saved);
-            solutions_above_threshold.insert(final_cheat, pico_saved);
+            for solution in result {
+                let (_, final_cheat) = solution.into_iter().last().unwrap();
+                let cheat_start = final_cheat.start.unwrap();
+                let cheat_end = final_cheat.end.unwrap();
+                println!("Start at {:?}, end at {:?}, saves {} picoseconds", cheat_start, cheat_end, pico_saved);
+                solutions_above_threshold.insert(final_cheat, pico_saved);
+            }
         }
         solutions_above_threshold
     }
@@ -221,7 +225,7 @@ fn main() {
         println!("No cheat path: {}", race.no_cheat_path());
         // test threshold 2, result 44
         // input threshold 100, result ?
-        let threshold = 2;
+        let threshold = 50;
         let result = race.cheat_paths(threshold);
         println!("Count > {}: {}", threshold, result.len());
         let mut count_by_saved = HashMap::new();
