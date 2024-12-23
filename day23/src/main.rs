@@ -79,7 +79,6 @@ impl Network {
         let mut v = Vec::new();
         let mut cache = HashMap::new();
         for a in self.map.keys() {
-            println!("Started {}", a);
             let lan = Lan::from(a.clone());
             v.append(&mut lan.expand(self, &mut cache));
         }
@@ -122,6 +121,9 @@ impl Lan {
         let common = network.common_connections(&self.0, cache);
         if common.len() == 0 {
             // no further expansion possible
+            if self.0.len() > 12 {
+                println!("{:?}", self.0);
+            }
             return vec![self];
         }
         let mut options = Vec::new();
