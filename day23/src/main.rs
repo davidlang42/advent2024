@@ -3,7 +3,7 @@ use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
 
-type Computer = String;
+type Computer = [char; 2];
 
 struct Pair(Computer, Computer);
 
@@ -15,7 +15,7 @@ impl FromStr for Pair {
         if computers.len()!= 2 {
             panic!()
         }
-        Ok(Self(computers[0].to_string(), computers[1].to_string()))
+        Ok(Self(computers[0].chars().collect::<Vec<char>>().try_into().unwrap(), computers[1].chars().collect::<Vec<char>>().try_into().unwrap()))
     }
 }
 
@@ -49,14 +49,14 @@ impl Network {
         }
     }
 
-    fn triples(&self, starts_with: &str) -> HashSet<(Computer, Computer, Computer)> {
+    fn triples(&self, starts_with: char) -> HashSet<(Computer, Computer, Computer)> {
         let mut set = HashSet::new();
         for (a, a_set) in &self.map {
             for b in a_set {
                 if let Some(b_set) = self.map.get(b) {
                     for c in a_set.intersection(&b_set) {
                         let mut triple = vec![a, b, c];
-                        if triple.iter().any(|s| s.starts_with(starts_with)) {
+                        if triple.iter().any(|s| s[0] == starts_with) {
                             triple.sort(); // in alphabetical order to de-duplicate
                             set.insert((triple[0].clone(), triple[1].clone(), triple[2].clone()));
                         }
@@ -148,12 +148,12 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let connections: Vec<Pair> = text.lines().map(|s| s.parse().unwrap()).collect();
         let network = Network::from(connections);
-        let triples = network.triples("t");
+        let triples = network.triples('t');
         println!("Triples: {}", triples.len());
         let mut largest = network.largest();
         largest.sort();
         for s in largest {
-            print!("{}", s);
+            print!("{}{}", s[0], s[1]);
         }
         println!("");
     } else {
