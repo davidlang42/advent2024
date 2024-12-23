@@ -2,7 +2,6 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use pathfinding::prelude::astar;
-use pathfinding::prelude::astar_bag;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
@@ -91,87 +90,10 @@ impl Pos {
     }
 }
 
-
-#[derive(Clone, Hash, Eq, PartialEq)]
-struct CheatState {
-    start: Option<Pos>,
-    end: Option<Pos>,
-    moves: usize
-}
-
-impl CheatState {
-    fn is_active(&self) -> bool {
-        !self.start.is_none() && self.moves > 0
-    }
-
-    fn continue_cheat(&self) -> Option<Self> {
-        if !self.is_active() {
-           panic!("Called next_state() when not active");
-        }
-        if self.moves > 1 {
-            Some(Self {
-                start: self.start,
-                moves: self.moves - 1,
-                end: None
-            })
-        } else {
-            None // ran out of moves, can't continue
-        }
-    }
-
-    fn end_cheat(&self, end: &Pos) -> Self {
-        if !self.is_active() {
-            panic!("Called end_cheat() when not active");
-         }
-         Self {
-            start: self.start,
-            end: Some(*end),
-            moves: 0
-         }
-    }
-
-    fn is_available(&self) -> bool {
-        self.start.is_none()
-    }
-
-    fn start_cheat(&self, start: &Pos) -> Self {
-        if !self.is_available() {
-           panic!("Called start_cheat() when not available");
-        }
-        Self {
-            start: Some(*start),
-            end: None,
-            moves: 20 - 1 // -1 because we started the cheat in the previous position
-        }
-    }
-    
-    fn successors(&self, pos: &Pos, size: &Pos, walls: &HashSet<Pos>, existing_solutions: &HashMap<CheatState, usize>) -> Vec<((Pos, CheatState),u32)> {
-        let mut v = Vec::new();
-        for adj in pos.adjacent(size) {
-            if self.is_active() {
-                if walls.contains(&adj) {
-                    if let Some(next_state) = self.continue_cheat() {
-                        v.push(((adj, next_state), 1));
-                    }
-                } else {
-                    let next_state = self.end_cheat(&adj);
-                    if !existing_solutions.contains_key(&next_state) {
-                        v.push(((adj, next_state), 1));
-                    }
-                }
-            } else {
-                if walls.contains(&adj) {
-                    if self.is_available() {
-                        let next_state = self.start_cheat(pos);
-                        v.push(((adj, next_state), 1));
-                    }
-                } else {
-                    v.push(((adj, self.clone()), 1));
-                }
-            }
-        }
-        v
-    }
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
+struct Cheat {
+    start: Pos,
+    end: Pos
 }
 
 impl Race {
@@ -185,34 +107,47 @@ impl Race {
         no_cheat_path as usize
     }
 
-    fn cheat_paths(&self, threshold: usize) -> HashMap<CheatState, usize> { // cheat : picoseconds saved
-        let no_cheat = self.no_cheat_path();
-        let not_yet_cheated = CheatState {
-            start: None,
-            end: None,
-            moves: 0
-        };
-        let mut solutions_above_threshold = HashMap::new();
-        while let Some((result, cheat_path)) = astar_bag(
-            &(self.start, not_yet_cheated.clone()),
-            |(p, c)| c.successors(p, &self.size, &self.walls, &solutions_above_threshold),
-            |(p, _c)| p.minimum_distance(&self.end),
-            |(p, _c)| *p == self.end
-        ) {
-            let pico_saved = no_cheat - cheat_path as usize;
-            if pico_saved < threshold {
-                break;
-            }
-            for solution in result {
-                let (_, final_cheat) = solution.into_iter().last().unwrap();
-                let cheat_start = final_cheat.start.unwrap();
-                let cheat_end = final_cheat.end.unwrap();
-                if solutions_above_threshold.insert(final_cheat, pico_saved).is_none() {
-                    println!("Start at {:?}, end at {:?}, saves {} picoseconds", cheat_start, cheat_end, pico_saved);
+    fn cheat_paths(&self, moves: u32, threshold: u32) -> HashMap<Cheat, usize> { // cheat : picoseconds saved
+        // find all poses we go through on the no cheat path
+        let (no_cheat_path, _) = astar(
+            &self.start,
+            |p| p.adjacent(&self.size).into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+            |p| p.minimum_distance(&self.end),
+            |p| *p == self.end
+        ).expect("No solution");
+        // go through each pos and look for paths through walls which are less than 20 long
+        let mut cheat_paths = HashMap::new();
+        for s in 0..no_cheat_path.len() {
+            for e in (s+1)..no_cheat_path.len() {
+                let start = &no_cheat_path[s];
+                let end = &no_cheat_path[e];
+                let minimum_distance = start.minimum_distance(end);
+                if minimum_distance > moves {
+                    continue; // cheat wont be long enough
+                }
+                let no_cheat_length = s.abs_diff(e) as u32;
+                if no_cheat_length == minimum_distance {
+                    continue; // cheat cant possibly help
+                }
+                if let Some((_, cheat_length)) = astar(
+                    start,
+                    |p| p.adjacent(&self.size).into_iter().filter(|p| self.walls.contains(p) || *p == *end).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
+                    |p| p.minimum_distance(end),
+                    |p| *p == *end
+                ) {
+                    let pico_saved = no_cheat_length - cheat_length;
+                    if cheat_length <= moves && cheat_length < no_cheat_length && pico_saved >= threshold {
+                        let cheat = Cheat {
+                            start: *start,
+                            end: *end
+                        };
+                        //println!("Cheat {:?} saves {} ps ({}-{})", cheat, pico_saved, no_cheat_length, cheat_length);
+                        cheat_paths.insert(cheat, pico_saved as usize);
+                    }
                 }
             }
         }
-        solutions_above_threshold
+        cheat_paths
     }
 }
 
@@ -224,8 +159,9 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
-        let threshold = 50;
-        let result = race.cheat_paths(threshold);
+        let threshold = 100;
+        let moves = 2;
+        let result = race.cheat_paths(moves, threshold);
         println!("Count > {}: {}", threshold, result.len());
         let mut count_by_saved = HashMap::new();
         for (_, pico) in result {
