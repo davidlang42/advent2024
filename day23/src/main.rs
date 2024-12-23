@@ -2,7 +2,7 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
-use std::time::Instant;
+//use std::time::Instant;
 
 type Computer = [char; 2];
 
@@ -21,14 +21,17 @@ impl FromStr for Pair {
 }
 
 struct Network {
-    
+    pcs: Vec<Computer>,
     map: HashMap<Computer, HashSet<Computer>>
 }
+
+struct SelectedComputers(Vec<bool>);
 
 impl Network {
     fn new() -> Self {
         Self {
-            map: HashMap::new()
+            map: HashMap::new(),
+            pcs: Vec::new()
         }
     }
 
@@ -47,7 +50,9 @@ impl Network {
         } else {
             let mut new = HashSet::new();
             new.insert(v);
-            self.map.insert(k, new);
+            self.map.insert(k.clone(), new);
+            self.pcs.push(k);
+            self.pcs.sort();
         }
     }
 
@@ -69,51 +74,34 @@ impl Network {
         set
     }
 
-    fn largest(&self) -> Vec<Computer> {
+    fn largest(&self) -> Lan {
         let mut largest: Option<Lan> = None;
-        for l in self.all_lans() {
-            if largest.is_none() || largest.as_ref().unwrap().size() < l.size() {
-                largest = Some(l);
-            }
-        }
-        largest.unwrap().0.into_iter().collect::<Vec<Computer>>()
-    }
-
-    fn all_lans(&self) -> Vec<Lan> {
-        let mut v = Vec::new();
-        let mut avoid = HashSet::new();
-        let mut last = Instant::now();
-        let mut expand_cache = HashMap::new();
-        let mut common_cache = HashMap::new();
+        // let mut avoid = HashSet::new();
+        // let mut last = Instant::now();
+        // let mut expand_cache = HashMap::new();
+        // let mut common_cache = HashMap::new();
         for a in self.map.keys() {
-            expand_cache.clear();
-            common_cache.clear();
-            println!("Starting {:?} ({}/{}={}%)", a, avoid.len(), self.map.len(), avoid.len() as f64 * 100.0 / self.map.len() as f64);
+            // expand_cache.clear();
+            // common_cache.clear();
+            // println!("Starting {:?} ({}/{}={}%)", a, avoid.len(), self.map.len(), avoid.len() as f64 * 100.0 / self.map.len() as f64);
             let lan = Lan::from(a.clone());
-            v.append(&mut lan.expand(self, &mut expand_cache, &mut common_cache, &avoid));
-            avoid.insert(*a);
-            let duration = Instant::now() - last;
-            println!("Took {}s (expand cache: {}, common cache: {})", duration.as_secs(), expand_cache.len(), common_cache.len());
-            last = Instant::now();
+            largest = Some(lan.largest_expansion(self, largest));
+            // avoid.insert(*a);
+            // let duration = Instant::now() - last;
+            // println!("Took {}s (expand cache: {}, common cache: {})", duration.as_secs(), expand_cache.len(), common_cache.len());
+            // last = Instant::now();
         }
-        v
+        largest.unwrap()
     }
 
-    fn common_connections(&self, pcs: &HashSet<Computer>, cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>) -> HashSet<Computer> {
-        let mut pcs_vec: Vec<_> = pcs.iter().cloned().collect();
-        pcs_vec.sort();
-        if let Some(cached) = cache.get(&pcs_vec) {
-            cached.clone()
-        } else {
-            let mut common = HashSet::new();
-            for (other_pc, other_pc_connects_to) in &self.map {
-                if pcs.iter().all(|pc| other_pc_connects_to.contains(pc)) {
-                    common.insert(other_pc.clone());
-                }
+    fn common_connections(&self, pcs: &HashSet<Computer>) -> HashSet<Computer> {
+        let mut common = HashSet::new();
+        for (other_pc, other_pc_connects_to) in &self.map {
+            if pcs.iter().all(|pc| other_pc_connects_to.contains(pc)) {
+                common.insert(other_pc.clone());
             }
-            cache.insert(pcs_vec, common.clone());
-            common
         }
+        common
     }
 }
 
@@ -131,34 +119,28 @@ impl Lan {
         Self(set)
     }
 
-    fn expand(self, network: &Network, expand_cache: &mut HashMap<Vec<Computer>,Vec<Self>>, common_cache: &mut HashMap<Vec<Computer>,HashSet<Computer>>, avoid: &HashSet<Computer>) -> Vec<Self> {
-        let mut self_vec: Vec<_> = self.0.iter().cloned().collect();
-        self_vec.sort();
-        if let Some(cached) = expand_cache.get(&self_vec) {
-            cached.clone()
-        } else {
-            let mut common = network.common_connections(&self.0, common_cache);
-            for remove in avoid.iter() {
-                common.remove(remove);
-            }
-            if common.len() == 0 {
-                // no further expansion possible
-                if self.0.len() > 12 {
-                    println!("{:?}", self.0);
+    fn largest_expansion(self, network: &Network, mut largest: Option<Self>) -> Self {
+        let common = network.common_connections(&self.0);
+        if common.len() == 0 {
+            // no further expansion possible
+            if let Some(existing) = largest {
+                if self.size() > existing.size() {
+                    println!("New largest: {:?}", self.0);
+                    return self;
+                } else {
+                    return existing;
                 }
-                return vec![self];
+            } else {
+                println!("Default largest: {:?}", self.0);
+                return self;
             }
-            let mut options = Vec::new();
-            for c in common {
-                let mut option = self.clone();
-                option.0.insert(c.clone());
-                for sub_option in option.expand(network, expand_cache, common_cache, avoid) {
-                    options.push(sub_option);
-                }
-            }
-            expand_cache.insert(self_vec, options.clone());
-            options
         }
+        for c in common {
+            let mut option = self.clone();
+            option.0.insert(c.clone());
+            largest = Some(option.largest_expansion(network, largest));
+        }
+        largest.unwrap()
     }
 }
 
@@ -172,7 +154,7 @@ fn main() {
         let network = Network::from(connections);
         let triples = network.triples('t');
         println!("Triples: {}", triples.len());
-        let mut largest = network.largest();
+        let mut largest: Vec<Computer> = network.largest().0.into_iter().collect();
         largest.sort();
         for s in largest {
             print!("{}{}", s[0], s[1]);
