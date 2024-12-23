@@ -1,4 +1,5 @@
 use crate::{Computer, Selection};
+use std::time::Instant;
 
 #[derive(Debug)]
 pub struct FastNetwork<const N: usize> {
@@ -19,19 +20,22 @@ impl<const N: usize> FastNetwork<N> {
     pub fn largest(&self) -> Selection<N> {
         let mut largest: Option<Selection<N>> = None;
         // let mut avoid = HashSet::new();
-        // let mut last = Instant::now();
+        let mut last = Instant::now();
         // let mut expand_cache = HashMap::new();
         // let mut common_cache = HashMap::new();
+        let mut progress = 0;
         for a in 0..N {
             // expand_cache.clear();
             // common_cache.clear();
-            // println!("Starting {:?} ({}/{}={}%)", a, avoid.len(), self.map.len(), avoid.len() as f64 * 100.0 / self.map.len() as f64);
+            println!("Starting {:?} ({}/{}={}%)", a, progress, self.map.len(), progress as f64 * 100.0 / self.map.len() as f64);
             let lan = Selection::one(a);
             largest = Some(self.expand_selection_to_largest(lan, largest));
             // avoid.insert(*a);
-            // let duration = Instant::now() - last;
-            // println!("Took {}s (expand cache: {}, common cache: {})", duration.as_secs(), expand_cache.len(), common_cache.len());
-            // last = Instant::now();
+            let duration = Instant::now() - last;
+            progress += 1;
+            println!("Took {}s", duration.as_secs());
+            //println!("Took {}s (expand cache: {}, common cache: {})", duration.as_secs(), expand_cache.len(), common_cache.len());
+            last = Instant::now();
         }
         largest.unwrap()
     }

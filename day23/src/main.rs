@@ -3,7 +3,6 @@ use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
 use crate::fast::FastNetwork;
-//use std::time::Instant;
 
 type Computer = [char; 2];
 
