@@ -40,7 +40,7 @@ use std::collections::HashMap;
 
 // impl Towel {
 //     fn can_be_made_from(&self, subs: &Vec<Towel>) -> bool {
-//         todo!()
+//         t odo!()
 //     }
 // }
 

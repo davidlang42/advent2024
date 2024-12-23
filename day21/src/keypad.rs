@@ -52,7 +52,6 @@ impl<K: Key> Keypad<K> {
         results
     }
 
-    //TODO add caching if needed
     fn shortest_paths_to_code_recursive(start_key: &K, code: &[K], cache: &mut HashMap<(K, Vec<K>), Vec<Self>>) -> Vec<Self> {
         let code_vec: Vec<_> = code.into();
         if let Some(existing) = cache.get(&(*start_key,code_vec.clone())) {

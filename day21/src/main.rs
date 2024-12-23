@@ -50,7 +50,7 @@ fn robot_indirection<K: Key>(code: &Code<K>, layers_of_indirection: usize) -> Ve
 
 fn solve_for<K: Key>(code: &Code<K>) -> Vec<Vec<DirectionalKey>> {
     let start = Keypad::<K>::new();
-    let mut cache = HashMap::new();
+    let mut cache = HashMap::new();//TODO persist cache
     let results = start.shortest_paths_to_code(&code, &mut cache);
     // filter out results which are no longer the shortest (due to combining with upstream results)
     let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
