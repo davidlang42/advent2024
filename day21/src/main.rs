@@ -21,7 +21,7 @@ fn main() {
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let mut sum = 0;
         for code in codes {
-            let results = robot_indirection(&code, 2);
+            let results = robot_indirection_numeric(&code, 2);
             let shortest: usize = results.iter().map(|r| r.len()).min().unwrap();
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;
@@ -34,24 +34,38 @@ fn main() {
     }
 }
 
-fn robot_indirection<K: Key>(code: &Code<K>, layers_of_indirection: usize) -> Vec<Vec<DirectionalKey>> {
+fn robot_indirection_numeric(code: &Code<NumericKey>, layers_of_indirection: usize) -> Vec<Vec<DirectionalKey>> {
     if layers_of_indirection == 0 {
-        solve_for(&code)
+        solve_for(&code, &mut HashMap::new())
     } else {
         let mut final_results = Vec::new();
-        let results = solve_for(code);
+        let results = solve_for(code, &mut HashMap::new());
+        let mut cache = HashMap::new();
         for r in results {
             let inner_code = Code { keys: r };
-            final_results.append(&mut robot_indirection(&inner_code, layers_of_indirection - 1));
+            final_results.append(&mut robot_indirection_directional(&inner_code, layers_of_indirection - 1, &mut cache));
         }
         final_results
     }
 }
 
-fn solve_for<K: Key>(code: &Code<K>) -> Vec<Vec<DirectionalKey>> {
+fn robot_indirection_directional(code: &Code<DirectionalKey>, layers_of_indirection: usize, cache: &mut HashMap<(DirectionalKey, Vec<DirectionalKey>), Vec<Keypad<DirectionalKey>>>) -> Vec<Vec<DirectionalKey>> {
+    if layers_of_indirection == 0 {
+        solve_for(&code, cache)
+    } else {
+        let mut final_results = Vec::new();
+        let results = solve_for(code, cache);
+        for r in results {
+            let inner_code = Code { keys: r };
+            final_results.append(&mut robot_indirection_directional(&inner_code, layers_of_indirection - 1, cache));
+        }
+        final_results
+    }
+}
+
+fn solve_for<K: Key>(code: &Code<K>, cache: &mut HashMap<(K, Vec<K>), Vec<Keypad<K>>>) -> Vec<Vec<DirectionalKey>> {
     let start = Keypad::<K>::new();
-    let mut cache = HashMap::new();//TODO persist cache
-    let results = start.shortest_paths_to_code(&code, &mut cache);
+    let results = start.shortest_paths_to_code(&code, cache);
     // filter out results which are no longer the shortest (due to combining with upstream results)
     let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
     results.into_iter().filter(|r| r.movements.len() == shortest).map(|r| r.movements).collect::<Vec<Vec<DirectionalKey>>>()
