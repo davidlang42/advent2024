@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::env;
 use crate::keypad::{Keypad, Key};
@@ -43,7 +44,8 @@ fn main() {
 fn solve_for<K: Key>(code: &Code<K>, _log_description: &str) -> Vec<Keypad<K>> {
     //println!("[{}] Code: {}", log_description, code);
     let start = Keypad::<K>::new();
-    let mut results = start.shortest_paths_to_code(&code);
+    let mut cache = HashMap::new();
+    let mut results = start.shortest_paths_to_code(&code, &mut cache);
     // filter out results which are no longer the shortest (due to combining with upstream results)
     let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
     results = results.into_iter().filter(|r| r.movements.len() == shortest).collect();

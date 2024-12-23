@@ -1,5 +1,6 @@
 use crate::Code;
 use crate::directional::{Direction, DirectionalKey};
+use std::collections::HashMap;
 use std::hash::Hash;
 use pathfinding::prelude::astar_bag;
 
@@ -21,7 +22,7 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct Keypad<K: Key> {
     pub current: K,
-    pub movements: Vec<DirectionalKey>//TODO exclude this from Eq/PartialEq
+    pub movements: Vec<DirectionalKey>
 }
 
 impl<K: Key> Keypad<K> {
@@ -40,9 +41,9 @@ impl<K: Key> Keypad<K> {
         s
     }
 
-    pub fn shortest_paths_to_code(&self, code: &Code<K>) -> Vec<Self> {
+    pub fn shortest_paths_to_code(&self, code: &Code<K>, cache: &mut HashMap<(K, Vec<K>), Vec<Self>>) -> Vec<Self> {
         let mut results = Vec::new();
-        for mut sub_result in Self::shortest_paths_to_code_recursive(&self.current, &code.keys) {
+        for mut sub_result in Self::shortest_paths_to_code_recursive(&self.current, &code.keys, cache) {
             let mut new_movements = self.movements.clone();
             new_movements.append(&mut sub_result.movements);
             sub_result.movements = new_movements;
@@ -52,26 +53,34 @@ impl<K: Key> Keypad<K> {
     }
 
     //TODO add caching if needed
-    fn shortest_paths_to_code_recursive(start_key: &K, code: &[K]) -> Vec<Self> {
-        let mut results = Vec::new();
-        for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
-            result.movements.push(DirectionalKey::Activate);
-            if code.len() == 1 {
-                // this is a finished result, these will always be the shortest (due to astar_bag)
-                results.push(result);
-            } else {
-                // continue (recurisively) to the next key
-                for mut sub_result in Self::shortest_paths_to_code_recursive(&result.current, &code[1..code.len()]) {
-                    let mut new_movements = result.movements.clone();
-                    new_movements.append(&mut sub_result.movements);
-                    sub_result.movements = new_movements;
-                    results.push(sub_result);
+    fn shortest_paths_to_code_recursive(start_key: &K, code: &[K], cache: &mut HashMap<(K, Vec<K>), Vec<Self>>) -> Vec<Self> {
+        let code_vec: Vec<_> = code.into();
+        if let Some(existing) = cache.get(&(*start_key,code_vec.clone())) {
+            existing.clone()
+        } else {
+            let mut results = Vec::new();
+            for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
+                result.movements.push(DirectionalKey::Activate);
+                if code.len() == 1 {
+                    // this is a finished result, these will always be the shortest (due to astar_bag)
+                    results.push(result);
+                } else {
+                    // continue (recurisively) to the next key
+                    for mut sub_result in Self::shortest_paths_to_code_recursive(&result.current, &code[1..code.len()], cache) {
+                        let mut new_movements = result.movements.clone();
+                        new_movements.append(&mut sub_result.movements);
+                        sub_result.movements = new_movements;
+                        results.push(sub_result);
+                    }
                 }
             }
+            // filter out results which are no longer the shortest (due to combining with upstream results)
+            let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
+            let final_result: Vec<_> = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
+            // save in cache
+            cache.insert((*start_key, code_vec), final_result.clone());
+            final_result
         }
-        // filter out results which are no longer the shortest (due to combining with upstream results)
-        let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
-        results.into_iter().filter(|r| r.movements.len() == shortest).collect()
     }
 
     fn shortest_paths_to_key(start_key: &K, key: &K) -> Vec<Self> {
