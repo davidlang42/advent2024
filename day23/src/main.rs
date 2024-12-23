@@ -11,10 +11,6 @@ type Computer = [char; 2];
 struct Selection<const N: usize>([bool; N]);
 
 impl<const N: usize> Selection<N> {
-    fn new() -> Self {
-        Self([false; N])
-    }
-
     fn one(index: usize) -> Self {
         let mut bools = [false; N];
         bools[index] = true;
@@ -151,17 +147,11 @@ fn main() {
         if network.pcs.len() == 16 {
             let fast: FastNetwork<16> = network.to_fast();
             let largest = fast.largest();
-            for i in largest.selected() {
-                print!("{}{}", fast.pcs[i][0], fast.pcs[i][1]);
-            }
-            println!("");
+            println!("{}", fast.display(&largest));
         } else if network.pcs.len() == 520 {
             let fast: FastNetwork<520> = network.to_fast();
             let largest = fast.largest();
-            for i in largest.selected() {
-                print!("{}{}", fast.pcs[i][0], fast.pcs[i][1]);
-            }
-            println!("");
+            println!("{}", fast.display(&largest));
         }
     } else {
         println!("Please provide 1 argument: Filename");

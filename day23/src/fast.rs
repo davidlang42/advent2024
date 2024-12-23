@@ -7,6 +7,15 @@ pub struct FastNetwork<const N: usize> {
 }
 
 impl<const N: usize> FastNetwork<N> {
+    pub fn display(&self, selection: &Selection<N>) -> String {
+        let mut s = String::new();
+        for i in selection.selected() {
+            s.push(self.pcs[i][0]);
+            s.push(self.pcs[i][1]);
+        }
+        s
+    }
+
     pub fn largest(&self) -> Selection<N> {
         let mut largest: Option<Selection<N>> = None;
         // let mut avoid = HashSet::new();
@@ -33,13 +42,13 @@ impl<const N: usize> FastNetwork<N> {
             // no further expansion possible
             if let Some(existing) = largest {
                 if lan.count() > existing.count() {
-                    println!("New largest: {:?}", lan.0);
+                    println!("New largest: {}", self.display(&lan));
                     return lan;
                 } else {
                     return existing;
                 }
             } else {
-                println!("Default largest: {:?}", lan.0);
+                println!("Default largest: {}", self.display(&lan));
                 return lan;
             }
         }
