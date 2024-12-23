@@ -41,20 +41,20 @@ impl<K: Key> Keypad<K> {
     }
 
     pub fn shortest_paths_to_code(&self, code: &Code<K>) -> Vec<Self> {
-        self.shortest_paths_to_code_recursive(code, 0)
+        Self::shortest_paths_to_code_recursive(self, &code.keys)
     }
 
     //TODO add caching if needed
-    fn shortest_paths_to_code_recursive(&self, code: &Code<K>, index: usize) -> Vec<Self> {
+    fn shortest_paths_to_code_recursive(start: &Self, code: &[K]) -> Vec<Self> {
         let mut results = Vec::new();
-        for mut result in self.shortest_paths_to_key(&code.keys[index]) {
+        for mut result in Self::shortest_paths_to_key(start, &code[0]) {
             result.movements.push(DirectionalKey::Activate);
-            if index == code.keys.len() - 1 {
+            if code.len() == 1 {
                 // this is a finished result, these will always be the shortest (due to astar_bag)
                 results.push(result);
             } else {
                 // continue (recurisively) to the next key
-                results.append(&mut result.shortest_paths_to_code_recursive(code, index + 1));
+                results.append(&mut Self::shortest_paths_to_code_recursive(&result, &code[1..code.len()]));
             }
         }
         // filter out results which are no longer the shortest (due to combining with upstream results)
@@ -62,8 +62,8 @@ impl<K: Key> Keypad<K> {
         results.into_iter().filter(|r| r.movements.len() == shortest).collect()
     }
 
-    fn shortest_paths_to_key(&self, key: &K) -> Vec<Self> {
-        let (results, _) = astar_bag(self, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
+    fn shortest_paths_to_key(start: &Self, key: &K) -> Vec<Self> {
+        let (results, _) = astar_bag(start, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
         results.into_iter().map(|r| r.into_iter().last().unwrap()).collect()
     }
 
