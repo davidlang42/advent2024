@@ -2,11 +2,14 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use std::collections::{HashSet, HashMap};
+use crate::fast::{FastNetwork, Selection};
 //use std::time::Instant;
 
 type Computer = [char; 2];
 
 struct Pair(Computer, Computer);
+
+mod fast;
 
 impl FromStr for Pair {
     type Err = String;
@@ -24,8 +27,6 @@ struct Network {
     pcs: Vec<Computer>,
     map: HashMap<Computer, HashSet<Computer>>
 }
-
-struct SelectedComputers(Vec<bool>);
 
 impl Network {
     fn new() -> Self {
@@ -72,6 +73,27 @@ impl Network {
             }
         }
         set
+    }
+
+    fn to_fast<const N: usize>(&self) -> FastNetwork<N> {
+        if self.pcs.len() != N {
+            panic!("Wrong length");
+        }
+        let mut pcs = Vec::new();
+        let mut map = Vec::new();
+        for pc in self.pcs.iter() {
+            pcs.push(pc.clone());
+            let set = self.map.get(pc).unwrap();
+            let mut selected = Vec::new();
+            for mapped_pc in self.pcs.iter() {
+                selected.push(set.contains(mapped_pc));
+            }
+            map.push(Selection(selected.try_into().unwrap()));
+        }
+        FastNetwork {
+            pcs: pcs.try_into().unwrap(),
+            map: map.try_into().unwrap()
+        }
     }
 
     fn largest(&self) -> Lan {
