@@ -223,8 +223,6 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
-        // test threshold 2, result 44
-        // input threshold 100, result ?
         let threshold = 50;
         let result = race.cheat_paths(threshold);
         println!("Count > {}: {}", threshold, result.len());
@@ -237,7 +235,9 @@ fn main() {
             }
         }
         let mut sum = 0;
-        for (saved, count) in count_by_saved {
+        let mut cbs_vec: Vec<_> = count_by_saved.into_iter().collect();
+        cbs_vec.sort_by(|a,b| a.0.cmp(&b.0));
+        for (saved, count) in cbs_vec {
             sum += count;
             if count == 1 {
                 println!("There is one cheat that saves {} picoseconds.", saved);
