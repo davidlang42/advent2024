@@ -207,8 +207,9 @@ impl Race {
                 let (_, final_cheat) = solution.into_iter().last().unwrap();
                 let cheat_start = final_cheat.start.unwrap();
                 let cheat_end = final_cheat.end.unwrap();
-                println!("Start at {:?}, end at {:?}, saves {} picoseconds", cheat_start, cheat_end, pico_saved);
-                solutions_above_threshold.insert(final_cheat, pico_saved);
+                if solutions_above_threshold.insert(final_cheat, pico_saved).is_none() {
+                    println!("Start at {:?}, end at {:?}, saves {} picoseconds", cheat_start, cheat_end, pico_saved);
+                }
             }
         }
         solutions_above_threshold
