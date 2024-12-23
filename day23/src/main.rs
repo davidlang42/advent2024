@@ -100,22 +100,20 @@ impl Lan {
         let mut common = sub_sets[0].clone();
         for i in 1..sub_sets.len() {
             common = common.intersection(&sub_sets[i]).cloned().collect();
+            if common.len() == 0 {
+                // no further expansion possible
+                return vec![self];
+            } 
         }
-        if common.len() == 0 {
-            // no further expansion possible
-            vec![self]
-        } else {
-            // recurse
-            let mut options = Vec::new();
-            for c in common {
-                let mut option = self.clone();
-                option.0.insert(c.clone());
-                for sub_option in option.expand(network) {
-                    options.push(sub_option);
-                }
+        let mut options = Vec::new();
+        for c in common {
+            let mut option = self.clone();
+            option.0.insert(c.clone());
+            for sub_option in option.expand(network) {
+                options.push(sub_option);
             }
-            options
         }
+        options
     }
 }
 
