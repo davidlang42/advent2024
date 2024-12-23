@@ -31,7 +31,10 @@ impl<const N: usize> FastNetwork<N> {
             // common_cache.clear();
             println!("Starting {:?} ({}/{}={}%)", a, progress, self.map.len(), progress as f64 * 100.0 / self.map.len() as f64);
             let lan = Selection::one(a);
-            largest = Some(self.expand_selection_to_largest(lan, largest));
+            let result = self.expand_selection_to_largest(lan);
+            if largest.is_none() || largest.as_ref().unwrap().count() < result.count() {
+                largest = Some(result);
+            }
             // avoid.insert(*a);
             let duration = Instant::now() - last;
             progress += 1;
@@ -42,26 +45,20 @@ impl<const N: usize> FastNetwork<N> {
         largest.unwrap()
     }
 
-    fn expand_selection_to_largest(&mut self, lan: Selection<N>, mut largest: Option<Selection<N>>) -> Selection<N> {
+    fn expand_selection_to_largest(&mut self, lan: Selection<N>) -> Selection<N> {
         let common = self.common_connections(&lan);
         if common.count() == 0 {
             // no further expansion possible
-            if let Some(existing) = largest {
-                if lan.count() > existing.count() {
-                    println!("New largest: {}", self.display(&lan));
-                    return lan;
-                } else {
-                    return existing;
-                }
-            } else {
-                println!("Default largest: {}", self.display(&lan));
-                return lan;
-            }
+            return lan;
         }
+        let mut largest: Option<Selection<N>> = None;
         for i in common.selected() {
             let mut option = lan.clone();
             option.0[i] = true;
-            largest = Some(self.expand_selection_to_largest(option, largest));
+            let result = self.expand_selection_to_largest(option);
+            if largest.is_none() || largest.as_ref().unwrap().count() < result.count() {
+                largest = Some(result);
+            }
         }
         largest.unwrap()
     }
