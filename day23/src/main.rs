@@ -6,7 +6,7 @@ use crate::fast::FastNetwork;
 
 type Computer = [char; 2];
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Selection<const N: usize>([bool; N]);
 
 impl<const N: usize> Selection<N> {
@@ -128,7 +128,8 @@ impl Network {
         }
         FastNetwork {
             pcs: pcs.try_into().unwrap(),
-            map: map.try_into().unwrap()
+            map: map.try_into().unwrap(),
+            common_cache: HashMap::new()
         }
     }
 }
@@ -144,11 +145,11 @@ fn main() {
         let triples = network.triples('t');
         println!("Triples: {}", triples.len());
         if network.pcs.len() == 16 {
-            let fast: FastNetwork<16> = network.to_fast();
+            let mut fast: FastNetwork<16> = network.to_fast();
             let largest = fast.largest();
             println!("{}", fast.display(&largest));
         } else if network.pcs.len() == 520 {
-            let fast: FastNetwork<520> = network.to_fast();
+            let mut fast: FastNetwork<520> = network.to_fast();
             let largest = fast.largest();
             println!("{}", fast.display(&largest));
         }
