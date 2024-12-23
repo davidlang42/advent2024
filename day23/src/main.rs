@@ -79,6 +79,18 @@ impl Network {
         }
         v
     }
+
+    fn common_connections(&self, pcs: &HashSet<String>) -> HashSet<String> {
+        let sub_sets: Vec<_> = pcs.iter().map(|pc| self.0.get(pc).unwrap()).collect();
+        let mut common = sub_sets[0].clone();
+        for i in 1..sub_sets.len() {
+            common = common.intersection(&sub_sets[i]).cloned().collect();
+            if common.len() == 0 {
+                return HashSet::new()
+            } 
+        }
+        common
+    }
 }
 
 #[derive(Clone)]
@@ -96,14 +108,10 @@ impl Lan {
     }
 
     fn expand(self, network: &Network) -> Vec<Self> {
-        let sub_sets: Vec<_> = self.0.iter().map(|pc| network.0.get(pc).unwrap()).collect();
-        let mut common = sub_sets[0].clone();
-        for i in 1..sub_sets.len() {
-            common = common.intersection(&sub_sets[i]).cloned().collect();
-            if common.len() == 0 {
-                // no further expansion possible
-                return vec![self];
-            } 
+        let common = network.common_connections(&self.0);
+        if common.len() == 0 {
+            // no further expansion possible
+            return vec![self];
         }
         let mut options = Vec::new();
         for c in common {
