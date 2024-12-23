@@ -109,7 +109,7 @@ impl Race {
 
     fn cheat_paths(&self, moves: u32, threshold: u32) -> HashMap<Cheat, usize> { // cheat : picoseconds saved
         // find all poses we go through on the no cheat path
-        let (no_cheat_path, _) = astar(
+        let (no_cheat_path, total_no_cheat_length) = astar(
             &self.start,
             |p| p.adjacent(&self.size).into_iter().filter(|p| !self.walls.contains(p)).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
             |p| p.minimum_distance(&self.end),
@@ -117,7 +117,11 @@ impl Race {
         ).expect("No solution");
         // go through each pos and look for paths through walls which are less than 20 long
         let mut cheat_paths = HashMap::new();
+        let mut skip = 1;
         for s in 0..no_cheat_path.len() {
+            if s % 100 == 0 {
+                println!("Start {}/{} ({}%)", s, no_cheat_path.len(), s as f64 * 100.0 / no_cheat_path.len() as f64);
+            }
             for e in (s+1)..no_cheat_path.len() {
                 let start = &no_cheat_path[s];
                 let end = &no_cheat_path[e];
@@ -125,23 +129,36 @@ impl Race {
                 if minimum_distance > moves {
                     continue; // cheat wont be long enough
                 }
-                let no_cheat_length = s.abs_diff(e) as u32;
+                let no_cheat_length = e as u32 - s as u32;
                 if no_cheat_length == minimum_distance {
                     continue; // cheat cant possibly help
                 }
-                if let Some((_, cheat_length)) = astar(
+                if let Some((cheat_path, cheat_length)) = astar(
                     start,
                     |p| p.adjacent(&self.size).into_iter().filter(|p| self.walls.contains(p) || *p == *end).map(|p| (p, 1)).collect::<Vec<(Pos, u32)>>(),
                     |p| p.minimum_distance(end),
                     |p| *p == *end
                 ) {
+                    let total_cheat_length = s as u32 + cheat_length + no_cheat_path.len() as u32 - e as u32 - 1;
                     let pico_saved = no_cheat_length - cheat_length;
                     if cheat_length <= moves && cheat_length < no_cheat_length && pico_saved >= threshold {
                         let cheat = Cheat {
                             start: *start,
                             end: *end
                         };
-                        //println!("Cheat {:?} saves {} ps ({}-{})", cheat, pico_saved, no_cheat_length, cheat_length);
+                        if pico_saved == 50 {
+                            if skip == 0 {
+                                println!("50: {:?}", cheat);
+                                println!("cheat-len: {}, no-cheat-len: {}, pico: {}, total_cheat_l: {}, total_no_cheat_l: {}", cheat_length, no_cheat_length, pico_saved, total_cheat_length, total_no_cheat_length);
+                                // println!("cheat path: {}", cheat_path.len());
+                                // for p in cheat_path {
+                                //     println!("{:?}", p)
+                                // }
+                                panic!("HERE")
+                            } else {
+                                skip -= 1;
+                            }
+                        }
                         cheat_paths.insert(cheat, pico_saved as usize);
                     }
                 }
@@ -159,8 +176,8 @@ fn main() {
             .expect(&format!("Error reading from {}", filename));
         let race: Race = text.parse().unwrap();
         println!("No cheat path: {}", race.no_cheat_path());
-        let threshold = 100;
-        let moves = 2;
+        let threshold = 50;
+        let moves = 20;
         let result = race.cheat_paths(moves, threshold);
         println!("Count > {}: {}", threshold, result.len());
         let mut count_by_saved = HashMap::new();
