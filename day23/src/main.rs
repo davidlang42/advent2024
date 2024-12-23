@@ -92,13 +92,11 @@ impl Network {
         if let Some(cached) = cache.get(&pcs_vec) {
             cached.clone()
         } else {
-            let sub_sets: Vec<_> = pcs.iter().map(|pc| self.map.get(pc).unwrap()).collect();
-            let mut common = sub_sets[0].clone();
-            for i in 1..sub_sets.len() {
-                common = common.intersection(&sub_sets[i]).cloned().collect();
-                if common.len() == 0 {
-                    return HashSet::new()
-                } 
+            let mut common = HashSet::new();
+            for (other_pc, other_pc_connects_to) in &self.map {
+                if pcs.iter().all(|pc| other_pc_connects_to.contains(pc)) {
+                    common.insert(other_pc.clone());
+                }
             }
             cache.insert(pcs_vec, common.clone());
             common
