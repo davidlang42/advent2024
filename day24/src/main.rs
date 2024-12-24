@@ -203,11 +203,13 @@ impl Expression {
     }
 
     fn valid_for_addition(&self, digit: usize) -> bool {
-        self.depends_on().iter().all(|input| match input {
+        let valid_dependents = self.depends_on().iter().all(|input| match input {
             Input::X(x) => *x <= digit,
             Input::Y(y) => *y <= digit,
             _ => panic!()
-        })
+        });
+        //TODO each digit should make depth +2, starting from 2
+        //TODO further: could derive each one
     }
 }
 
