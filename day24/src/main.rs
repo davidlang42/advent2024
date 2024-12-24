@@ -2,6 +2,8 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use std::collections::HashMap;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 type Wire = String;
 
@@ -9,6 +11,18 @@ type Wire = String;
 struct Logic {
     calculations: HashMap<Wire, Gate>,
     values: HashMap<Wire, bool>
+}
+
+struct Expression {
+    operation: Operation,
+    input_a: Input,
+    input_b: Input
+}
+
+enum Input {
+    Exp(Box<Expression>),
+    X(usize),
+    Y(usize)
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +112,36 @@ impl Logic {
         }
         s
     }
+
+    fn simplify(&self) -> Vec<Expression> {
+        let mut exp = Vec::new();
+        let mut keys: Vec<_> = self.calculations.keys().filter(|k| k.starts_with("z")).collect();
+        keys.sort_by(|a,b| b.cmp(&a));
+        for k in keys {
+            if let Input::Exp(e) = self.expression_for(k) {
+                exp.push(*e);
+            } else {
+                panic!();
+            }
+        }
+        exp
+    }
+
+    fn expression_for(&self, key: &Wire) -> Input {
+        if key.starts_with("x") {
+            Input::X(key[1..].parse().unwrap())
+        } else if key.starts_with("y") {
+            Input::Y(key[1..].parse().unwrap())
+        } else {
+            let calc = self.calculations.get(key).unwrap();
+            let exp = Expression {
+                operation: calc.operation.clone(),
+                input_a: self.expression_for(&calc.input_a),
+                input_b: self.expression_for(&calc.input_b)
+            };
+            Input::Exp(Box::new(exp))
+        }
+    }
 }
 
 impl Gate {
@@ -116,6 +160,32 @@ impl Gate {
     }
 }
 
+impl Display for Expression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} {} {}", self.input_a, self.operation, self.input_b)
+    }
+}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", match self {
+            Self::And => "&&",
+            Self::Or => "||",
+            Self::Xor => "=="
+        })
+    }
+}
+
+impl Display for Input {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Self::X(x) => write!(f, "x{}", x),
+            Self::Y(y) => write!(f, "y{}", y),
+            Self::Exp(e) => write!(f, "({})", e)
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
@@ -123,8 +193,12 @@ fn main() {
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
         let mut logic: Logic = text.parse().unwrap();
+        let exp = logic.simplify();
         logic.calculate();
-        println!("Logic: {}", logic.binary("z"));
+        println!("Part1: {}", logic.binary("z"));
+        for e in 0..exp.len() {
+            println!("z{} = {}", e, exp[e]);
+        }
     } else {
         println!("Please provide 1 argument: Filename");
     }
