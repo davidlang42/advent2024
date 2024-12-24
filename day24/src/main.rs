@@ -250,6 +250,7 @@ fn main() {
             //     print!("{} ", d)
             // }
             // println!("]");
+
             if exp[e].valid_for_addition(e) {
                 println!("z{} is valid", e);
             } else {
