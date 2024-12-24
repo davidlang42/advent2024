@@ -8,7 +8,7 @@ use std::fmt::Formatter;
 
 type Wire = String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Logic {
     calculations: HashMap<Wire, Gate>,
     values: HashMap<Wire, bool>
@@ -145,6 +145,28 @@ impl Logic {
             Input::Exp(Box::new(exp))
         }
     }
+
+    fn dependants_of(&self, wire: &Wire) -> Vec<Wire> {
+        let mut v = Vec::new();
+        if let Some(gate) = &self.calculations.get(wire) {
+            v.push(gate.input_a.clone());
+            for a in self.dependants_of(&gate.input_a) {
+                v.push(a);
+            }
+            v.push(gate.input_b.clone());
+            for b in self.dependants_of(&gate.input_b) {
+                v.push(b);
+            }
+        }
+        v
+    }
+
+    fn swap(&mut self, a: &Wire, b: &Wire) {
+        let a_gate = self.calculations.remove(a).unwrap();
+        let b_gate = self.calculations.remove(b).unwrap();
+        self.calculations.insert(a.clone(), b_gate);
+        self.calculations.insert(b.clone(), a_gate);
+    }
 }
 
 impl Gate {
@@ -203,12 +225,22 @@ impl Expression {
     }
 
     fn valid_for_addition(&self, digit: usize) -> bool {
-        let valid_dependents = self.depends_on().iter().all(|input| match input {
+        if !self.depends_on().iter().all(|input| match input {
             Input::X(x) => *x <= digit,
             Input::Y(y) => *y <= digit,
             _ => panic!()
-        });
-        //TODO each digit should make depth +2, starting from 2
+        }) {
+            return false; //invalid dependants
+        }
+        let expected_depth = if digit == 0 {
+            1
+        } else {
+            digit * 2
+        };
+        if self.depth() != expected_depth {
+            return false; //invalid depth
+        }
+        true
         //TODO further: could derive each one
     }
 }
@@ -239,10 +271,11 @@ fn main() {
         let filename = &args[1];
         let text = fs::read_to_string(&filename)
             .expect(&format!("Error reading from {}", filename));
-        let mut logic: Logic = text.parse().unwrap();
+        let logic: Logic = text.parse().unwrap();
+        let mut part1 = logic.clone();
+        part1.calculate();
+        println!("Part1: {}", part1.binary("z"));
         let exp = logic.simplify();
-        logic.calculate();
-        println!("Part1: {}", logic.binary("z"));
         for e in 0..exp.len() {
             //println!("[{}] z{} = {}", exp[e].depth(), e, exp[e]);
 
@@ -257,6 +290,34 @@ fn main() {
                 println!("z{} is valid", e);
             } else {
                 println!("z{} is NOT valid", e);
+                let key = format!("z0{}", e);
+                for d in logic.dependants_of(&key) {
+                    for swap_with in logic.calculations.keys() {
+                        if d == *swap_with {
+                            continue; // dont swap with yourself
+                        }
+                        if !logic.calculations.contains_key(&d) {
+                            continue; // dont swap with things that already have values (rather than calcs)
+                        }
+                        let mut clone = logic.clone();
+                        //println!("Trying to swap {} with {}", d, swap_with);
+                        clone.swap(&d, swap_with);
+                        let exp2 = logic.simplify();
+                        for e2 in 0..exp.len() {
+                            if exp2[e2].valid_for_addition(e2) {
+                                if e2 >= e {
+                                    println!("With {}<->{}, z{} is valid", d,swap_with,e2);
+                                }
+                            } else {
+                                if e2 > e {
+                                    println!("With {}<->{}, z{} is NOT valid", d, swap_with,e2);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                panic!();
             }
         }
     } else {
