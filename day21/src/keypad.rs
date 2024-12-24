@@ -58,13 +58,17 @@ impl<K: Key> Keypad<K> {
             existing.clone()
         } else {
             let mut results = Vec::new();
-            for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
-                result.movements.push(DirectionalKey::Activate);
-                if code.len() == 1 {
-                    // this is a finished result, these will always be the shortest (due to astar_bag)
+            if code.len() == 1 {
+                // these are finished results, they will always be the shortest (due to astar_bag)
+                for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
+                    result.movements.push(DirectionalKey::Activate);
                     results.push(result);
-                } else {
-                    // continue (recurisively) to the next key
+                }
+            } else {
+                //TODO continue recursively by splitting in half
+                for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
+                    result.movements.push(DirectionalKey::Activate);
+                
                     for mut sub_result in Self::shortest_paths_to_code_recursive(&result.current, &code[1..code.len()], cache) {
                         let mut new_movements = result.movements.clone();
                         new_movements.append(&mut sub_result.movements);
@@ -72,13 +76,13 @@ impl<K: Key> Keypad<K> {
                         results.push(sub_result);
                     }
                 }
+                // filter out results which are no longer the shortest (due to combining with upstream results)
+                let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
+                results = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
             }
-            // filter out results which are no longer the shortest (due to combining with upstream results)
-            let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
-            let final_result: Vec<_> = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
             // save in cache
-            cache.insert(cache_key, final_result.clone());
-            final_result
+            cache.insert(cache_key, results.clone());
+            results
         }
     }
 
