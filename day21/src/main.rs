@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::env;
 use pathfinding::prelude::bfs;
@@ -93,8 +94,9 @@ fn main() {
 fn shortest_path_to_code<KP: Keypad<K>, K: Key>(start: RobotKeypad<KP, K>, code: &Code<NumericKey>) -> usize {
     let mut shortest = 0;
     let mut state = start;
+    let mut cache = HashMap::new();
     for nk in &code.keys {
-        let (final_state, length) = shortest_path_to_key(&state, nk);
+        let (final_state, length) = shortest_path_to_key(&state, nk, &mut cache);
         state = final_state;
         shortest += length;
         shortest += 1; // press activate
@@ -102,9 +104,15 @@ fn shortest_path_to_code<KP: Keypad<K>, K: Key>(start: RobotKeypad<KP, K>, code:
     shortest
 }
 
-fn shortest_path_to_key<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, key: &NumericKey) -> (RobotKeypad<KP, K>, usize) {
-    let result = bfs(start, |kp| kp.successors(), |kp| kp.ready_for_final_key(key)).expect("No solution");
-    let length = result.len() - 1;
-    let final_state = result.into_iter().last().unwrap();
-    (final_state, length)
+fn shortest_path_to_key<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, key: &NumericKey, cache: &mut HashMap<(RobotKeypad<KP, K>, NumericKey),(RobotKeypad<KP, K>, usize)>) -> (RobotKeypad<KP, K>, usize) {
+    let cache_key = (start.clone(), *key);
+    if let Some(cached) = cache.get(&cache_key) {
+        cached.clone()
+    } else {
+        let result = bfs(start, |kp| kp.successors(), |kp| kp.ready_for_final_key(key)).expect("No solution");
+        let length = result.len() - 1;
+        let final_state = result.into_iter().last().unwrap();
+        cache.insert(cache_key, (final_state.clone(), length));
+        (final_state, length)
+    }
 }
