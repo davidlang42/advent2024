@@ -21,64 +21,64 @@ fn main() {
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let mut sum = 0;
         for code in codes {
-            //part1
-            let keypad = RobotKeypad::controlling(
-                RobotKeypad::<FinalKeypad, NumericKey>::controlling(
-                    FinalKeypad::new()
-                )
-            );
-            // //part2
+            // //part1
             // let keypad = RobotKeypad::controlling(
-            //     RobotKeypad::controlling(
-            //         RobotKeypad::controlling(
-            //             RobotKeypad::controlling(
-            //                 RobotKeypad::controlling(
-            //                     RobotKeypad::controlling(
-            //                         RobotKeypad::controlling(
-            //                             RobotKeypad::controlling(
-            //                                 RobotKeypad::controlling(
-            //                                     RobotKeypad::controlling(
-            //                                         RobotKeypad::controlling(
-            //                                             RobotKeypad::controlling(
-            //                                                 RobotKeypad::controlling(
-            //                                                     RobotKeypad::controlling(
-            //                                                         RobotKeypad::controlling(
-            //                                                             RobotKeypad::controlling(
-            //                                                                 RobotKeypad::controlling(
-            //                                                                     RobotKeypad::controlling(
-            //                                                                         RobotKeypad::controlling(
-            //                                                                             RobotKeypad::controlling(
-            //                                                                                 RobotKeypad::controlling(
-            //                                                                                     RobotKeypad::controlling(
-            //                                                                                         RobotKeypad::controlling(
-            //                                                                                             RobotKeypad::controlling(
-            //                                                                                                 RobotKeypad::<FinalKeypad, NumericKey>::controlling(
-            //                                                                                                     FinalKeypad::new()
-            //                                                                                                 )
-            //                                                                                             )
-            //                                                                                         )
-            //                                                                                     )
-            //                                                                                 )
-            //                                                                             )
-            //                                                                         )
-            //                                                                     )
-            //                                                                 )
-            //                                                             )
-            //                                                         )
-            //                                                     )
-            //                                                 )
-            //                                             )
-            //                                         )
-            //                                     )
-            //                                 )
-            //                             )
-            //                         )
-            //                     )
-            //                 )
-            //             )
-            //         )
+            //     RobotKeypad::<FinalKeypad, NumericKey>::controlling(
+            //         FinalKeypad::new()
             //     )
             // );
+            //part2
+            let keypad = RobotKeypad::controlling(
+                RobotKeypad::controlling(
+                    RobotKeypad::controlling(
+                        RobotKeypad::controlling(
+                            RobotKeypad::controlling(
+                                RobotKeypad::controlling(
+                                    RobotKeypad::controlling(
+                                        RobotKeypad::controlling(
+                                            RobotKeypad::controlling(
+                                                RobotKeypad::controlling(
+                                                    RobotKeypad::controlling(
+                                                        RobotKeypad::controlling(
+                                                            RobotKeypad::controlling(
+                                                                RobotKeypad::controlling(
+                                                                    RobotKeypad::controlling(
+                                                                        RobotKeypad::controlling(
+                                                                            RobotKeypad::controlling(
+                                                                                RobotKeypad::controlling(
+                                                                                    RobotKeypad::controlling(
+                                                                                        RobotKeypad::controlling(
+                                                                                            RobotKeypad::controlling(
+                                                                                                RobotKeypad::controlling(
+                                                                                                    RobotKeypad::controlling(
+                                                                                                        RobotKeypad::controlling(
+                                                                                                            RobotKeypad::<FinalKeypad, NumericKey>::controlling(
+                                                                                                                FinalKeypad::new()
+                                                                                                            )
+                                                                                                        )
+                                                                                                    )
+                                                                                                )
+                                                                                            )
+                                                                                        )
+                                                                                    )
+                                                                                )
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            );
             let shortest = shortest_path_to_code(keypad, &code);
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;

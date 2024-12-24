@@ -25,7 +25,7 @@ pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
     // check that the final keypad's cursor is set to the correct key, and all preceeding ones are set to activate
     fn ready_for_final_key(&self, key: &NumericKey) -> bool;
 
-    //TODO
+    // heuristic for astar
     fn minimum_moves_to_final_key(&self, key: &NumericKey) -> usize;
 }
 
@@ -64,7 +64,7 @@ impl<KP: Keypad<K>, K: Key> Keypad<K> for RobotKeypad<KP, K> {
     }
 
     fn minimum_moves_to_final_key(&self, key: &NumericKey) -> usize {
-        self.inner_keypad.minimum_moves_to_final_key(key) + 1//TODO prob more
+        self.inner_keypad.minimum_moves_to_final_key(key) * 3//TODO this is a bit of a guess
     }
 }
 
