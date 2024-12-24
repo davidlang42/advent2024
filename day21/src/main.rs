@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::env;
 use directional::DirectionalKey;
+use keypad::FinalKeypad;
+use keypad::RobotKeypad;
 
 use crate::keypad::{Keypad, Key};
 use crate::code::Code;
@@ -21,8 +23,12 @@ fn main() {
         let codes: Vec<Code<NumericKey>> = text.lines().map(|s| s.parse().unwrap()).collect();
         let mut sum = 0;
         for code in codes {
-            let results = robot_indirection_numeric(&code, 2);
-            let shortest: usize = results.iter().map(|r| r.len()).min().unwrap();
+            let keypad = RobotKeypad::controlling(
+                RobotKeypad::controlling(
+                    FinalKeypad::new()
+                )
+            );
+            let shortest = keypad.shortest_path_to_code(&code);
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;
             println!("Code: {}, Shortest: {}, Complexity: {}", code, shortest, complexity);
