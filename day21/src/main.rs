@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::env;
-use pathfinding::prelude::bfs;
+use pathfinding::prelude::astar;
 
 use crate::keypad::{Keypad, Key, FinalKeypad, RobotKeypad};
 use crate::code::Code;
@@ -111,8 +111,7 @@ fn shortest_path_to_key<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, key: 
     if let Some(cached) = cache.get(&cache_key) {
         cached.clone()
     } else {
-        let result = bfs(start, |kp| kp.successors(), |kp| kp.ready_for_final_key(key)).expect("No solution");
-        let length = result.len() - 1;
+        let (result, length) = astar(start, |kp| kp.successors(), |kp| kp.minimum_moves_to_final_key(key), |kp| kp.ready_for_final_key(key)).expect("No solution");
         let final_state = result.into_iter().last().unwrap();
         cache.insert(cache_key, (final_state.clone(), length));
         (final_state, length)

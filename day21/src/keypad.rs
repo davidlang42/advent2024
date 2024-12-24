@@ -10,12 +10,12 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
     fn key_below(&self) -> Option<Self>;
     fn key_left(&self) -> Option<Self>;
     fn key_right(&self) -> Option<Self>;
-    // fn row(&self) -> usize;
-    // fn col(&self) -> usize;
+    fn row(&self) -> usize;
+    fn col(&self) -> usize;
     
-    // fn minimum_distance_to(&self, other: &Self) -> usize {
-    //     self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
-    // }
+    fn minimum_distance_to(&self, other: &Self) -> usize {
+        self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
+    }
 }
 
 pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
@@ -24,6 +24,9 @@ pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
 
     // check that the final keypad's cursor is set to the correct key, and all preceeding ones are set to activate
     fn ready_for_final_key(&self, key: &NumericKey) -> bool;
+
+    //TODO
+    fn minimum_moves_to_final_key(&self, key: &NumericKey) -> usize;
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
@@ -59,6 +62,10 @@ impl<KP: Keypad<K>, K: Key> Keypad<K> for RobotKeypad<KP, K> {
     fn ready_for_final_key(&self, key: &NumericKey) -> bool {
         self.current == DirectionalKey::Activate && self.inner_keypad.ready_for_final_key(key)
     }
+
+    fn minimum_moves_to_final_key(&self, key: &NumericKey) -> usize {
+        self.inner_keypad.minimum_moves_to_final_key(key) + 1//TODO prob more
+    }
 }
 
 impl<KP: Keypad<K>, K: Key> RobotKeypad<KP, K> {
@@ -70,11 +77,11 @@ impl<KP: Keypad<K>, K: Key> RobotKeypad<KP, K> {
         }
     }
 
-    pub fn successors(&self) -> Vec<Self> {
+    pub fn successors(&self) -> Vec<(Self, usize)> {
         let mut v = Vec::new();
         for dk in &DirectionalKey::ALL {
             if let Some(next) = self.try_next_state(dk) {
-                v.push(next);
+                v.push((next, 1));
             }
         }
         v
@@ -108,6 +115,10 @@ impl<K: Key> Keypad<K> for FinalKeypad {
 
     fn ready_for_final_key(&self, key: &NumericKey) -> bool {
         self.current == *key
+    }
+
+    fn minimum_moves_to_final_key(&self, key: &NumericKey) -> usize {
+        self.current.minimum_distance_to(key)
     }
 }
 
