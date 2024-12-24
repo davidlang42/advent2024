@@ -1,7 +1,5 @@
 use crate::numeric::NumericKey;
-use crate::Code;
 use crate::directional::{Direction, DirectionalKey};
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -21,7 +19,7 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
 }
 
 pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
-    fn press(&mut self, directional_key: &DirectionalKey);
+    fn try_next_state(&self, press: &DirectionalKey) -> Option<Self>;
     fn final_key(&self) -> NumericKey;
 }
 
@@ -33,17 +31,25 @@ pub struct RobotKeypad<KP: Keypad<K>, K: Key> {
 }
 
 impl<KP: Keypad<K>, K: Key> Keypad<K> for RobotKeypad<KP, K> {
-    fn press(&mut self, directional_key: &DirectionalKey) {
-        match directional_key {
+    fn try_next_state(&self, press: &DirectionalKey) -> Option<Self> {
+        match press {
             DirectionalKey::Move(direction) => {
-                match direction {
-                    Direction::Up => self.current = self.current.key_above().unwrap(),
-                    Direction::Down => self.current = self.current.key_below().unwrap(),
-                    Direction::Left => self.current = self.current.key_left().unwrap(),
-                    Direction::Right => self.current = self.current.key_right().unwrap(),
-                }
+                let next_current = match direction {
+                    Direction::Up => self.current.key_above(),
+                    Direction::Down => self.current.key_below(),
+                    Direction::Left => self.current.key_left(),
+                    Direction::Right => self.current.key_right(),
+                }?;
+                let mut clone = self.clone();
+                clone.current = next_current;
+                Some(clone)
             },
-            DirectionalKey::Activate => self.inner_keypad.press(&self.current)
+            DirectionalKey::Activate => {
+                let next_inner = self.inner_keypad.try_next_state(&self.current)?;
+                let mut clone = self.clone();
+                clone.inner_keypad = next_inner;
+                Some(clone)
+            }
         }
     }
 
@@ -61,30 +67,12 @@ impl<KP: Keypad<K>, K: Key> RobotKeypad<KP, K> {
         }
     }
 
-    fn valid_presses(&self) -> Vec<DirectionalKey> {
-        let mut v = vec![DirectionalKey::Activate];
-        if !self.current.key_above().is_none() {
-            v.push(DirectionalKey::Move(Direction::Up));
-        }
-        if !self.current.key_below().is_none() {
-            v.push(DirectionalKey::Move(Direction::Down));
-        }
-        if !self.current.key_left().is_none() {
-            v.push(DirectionalKey::Move(Direction::Left));
-        }
-        if !self.current.key_right().is_none() {
-            v.push(DirectionalKey::Move(Direction::Right));
-        }
-        v
-    }
-
     pub fn successors(&self) -> Vec<Self> {
         let mut v = Vec::new();
-        for dk in self.valid_presses() {
-            let mut clone = self.clone();
-            println!("Pressing {:?}", dk);
-            clone.press(&dk);
-            v.push(clone);
+        for dk in &DirectionalKey::ALL {
+            if let Some(next) = self.try_next_state(dk) {
+                v.push(next);
+            }
         }
         v
     }
@@ -96,17 +84,22 @@ pub struct FinalKeypad {
 }
 
 impl<K: Key> Keypad<K> for FinalKeypad {
-    fn press(&mut self, directional_key: &DirectionalKey) {
-        match directional_key {
+    fn try_next_state(&self, press: &DirectionalKey) -> Option<Self> {
+        match press {
             DirectionalKey::Move(direction) => {
-                match direction {
-                    Direction::Up => self.current = self.current.key_above().unwrap(),
-                    Direction::Down => self.current = self.current.key_below().unwrap(),
-                    Direction::Left => self.current = self.current.key_left().unwrap(),
-                    Direction::Right => self.current = self.current.key_right().unwrap(),
-                }
+                let next_current = match direction {
+                    Direction::Up => self.current.key_above(),
+                    Direction::Down => self.current.key_below(),
+                    Direction::Left => self.current.key_left(),
+                    Direction::Right => self.current.key_right(),
+                }?;
+                let mut clone = self.clone();
+                clone.current = next_current;
+                Some(clone)
             },
-            DirectionalKey::Activate => { }
+            DirectionalKey::Activate => {
+                None
+            }
         }
     }
 

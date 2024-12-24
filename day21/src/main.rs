@@ -1,12 +1,8 @@
-use std::collections::HashMap;
 use std::fs;
 use std::env;
-use directional::DirectionalKey;
-use keypad::FinalKeypad;
-use keypad::RobotKeypad;
-use pathfinding::prelude::{astar_bag, bfs};
+use pathfinding::prelude::bfs;
 
-use crate::keypad::{Keypad, Key};
+use crate::keypad::{Keypad, Key, FinalKeypad, RobotKeypad};
 use crate::code::Code;
 use crate::numeric::NumericKey;
 

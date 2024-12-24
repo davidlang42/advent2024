@@ -19,6 +19,16 @@ pub enum Direction {
     Right
 }
 
+impl DirectionalKey {
+    pub const ALL: [Self; 5] = [
+        DirectionalKey::Activate,
+        DirectionalKey::Move(Direction::Up),
+        DirectionalKey::Move(Direction::Down),
+        DirectionalKey::Move(Direction::Left),
+        DirectionalKey::Move(Direction::Right)
+    ];
+}
+
 impl Default for DirectionalKey {
     fn default() -> Self {
         Self::Activate
