@@ -186,6 +186,22 @@ impl Display for Input {
     }
 }
 
+impl Expression {
+    fn depth(&self) -> usize {
+        self.input_a.depth().max(self.input_b.depth())
+    }
+}
+
+impl Input {
+    fn depth(&self) -> usize {
+        if let Self::Exp(e) = &self {
+            e.depth() + 1
+        } else {
+            1
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {
@@ -197,7 +213,7 @@ fn main() {
         logic.calculate();
         println!("Part1: {}", logic.binary("z"));
         for e in 0..exp.len() {
-            println!("z{} = {}", e, exp[e]);
+            println!("[{}] z{} = {}", exp[e].depth(), e, exp[e]);
         }
     } else {
         println!("Please provide 1 argument: Filename");
