@@ -2,6 +2,7 @@ use std::fs;
 use std::env;
 use std::str::FromStr;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
@@ -13,12 +14,14 @@ struct Logic {
     values: HashMap<Wire, bool>
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 struct Expression {
     operation: Operation,
     input_a: Input,
     input_b: Input
 }
 
+#[derive(Clone, Hash, Eq, PartialEq)]
 enum Input {
     Exp(Box<Expression>),
     X(usize),
@@ -32,7 +35,7 @@ struct Gate {
     input_b: Wire
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum Operation {
     And,
     Or,
@@ -116,7 +119,7 @@ impl Logic {
     fn simplify(&self) -> Vec<Expression> {
         let mut exp = Vec::new();
         let mut keys: Vec<_> = self.calculations.keys().filter(|k| k.starts_with("z")).collect();
-        keys.sort_by(|a,b| b.cmp(&a));
+        keys.sort();
         for k in keys {
             if let Input::Exp(e) = self.expression_for(k) {
                 exp.push(*e);
@@ -190,6 +193,22 @@ impl Expression {
     fn depth(&self) -> usize {
         self.input_a.depth().max(self.input_b.depth())
     }
+
+    fn depends_on(&self) -> HashSet<Input> {
+        let mut set = self.input_a.depends_on();
+        for input in self.input_b.depends_on() {
+            set.insert(input);
+        }
+        set
+    }
+
+    fn valid_for_addition(&self, digit: usize) -> bool {
+        self.depends_on().iter().all(|input| match input {
+            Input::X(x) => *x <= digit,
+            Input::Y(y) => *y <= digit,
+            _ => panic!()
+        })
+    }
 }
 
 impl Input {
@@ -198,6 +217,16 @@ impl Input {
             e.depth() + 1
         } else {
             1
+        }
+    }
+
+    fn depends_on(&self) -> HashSet<Input> {
+        if let Self::Exp(e) = &self {
+            e.depends_on()
+        } else {
+            let mut set = HashSet::new();
+            set.insert(self.clone());
+            set
         }
     }
 }
@@ -213,7 +242,19 @@ fn main() {
         logic.calculate();
         println!("Part1: {}", logic.binary("z"));
         for e in 0..exp.len() {
-            println!("[{}] z{} = {}", exp[e].depth(), e, exp[e]);
+            //println!("[{}] z{} = {}", exp[e].depth(), e, exp[e]);
+
+            // let depends: Vec<Input> = exp[e].depends_on().into_iter().collect();
+            // print!("z{} depends on [ ", e);
+            // for d in depends {
+            //     print!("{} ", d)
+            // }
+            // println!("]");
+            if exp[e].valid_for_addition(e) {
+                println!("z{} is valid", e);
+            } else {
+                println!("z{} is NOT valid", e);
+            }
         }
     } else {
         println!("Please provide 1 argument: Filename");
