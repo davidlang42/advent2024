@@ -291,28 +291,41 @@ fn main() {
             } else {
                 println!("z{} is NOT valid", e);
                 let key = format!("z0{}", e);
-                for d in logic.dependants_of(&key) {
+                let dependants= logic.dependants_of(&key);
+                for d in &dependants {
                     for swap_with in logic.calculations.keys() {
-                        if d == *swap_with {
+                        if *d == *swap_with {
                             continue; // dont swap with yourself
                         }
-                        if !logic.calculations.contains_key(&d) {
+                        if !logic.calculations.contains_key(d) {
                             continue; // dont swap with things that already have values (rather than calcs)
                         }
                         let mut clone = logic.clone();
                         //println!("Trying to swap {} with {}", d, swap_with);
                         clone.swap(&d, swap_with);
-                        let exp2 = logic.simplify();
-                        for e2 in 0..exp.len() {
-                            if exp2[e2].valid_for_addition(e2) {
-                                if e2 >= e {
-                                    println!("With {}<->{}, z{} is valid", d,swap_with,e2);
+                        for d2 in &dependants {
+                            for swap_with2 in logic.calculations.keys() {
+                                if *d2 == *swap_with2 {
+                                    continue; // dont swap with yourself
                                 }
-                            } else {
-                                if e2 > e {
-                                    println!("With {}<->{}, z{} is NOT valid", d, swap_with,e2);
+                                if !logic.calculations.contains_key(d2) {
+                                    continue; // dont swap with things that already have values (rather than calcs)
                                 }
-                                break;
+                                let mut clone2 = clone.clone();
+                                clone2.swap(&d2, swap_with2);
+                                let exp2 = logic.simplify();
+                                for e2 in 0..exp.len() {
+                                    if exp2[e2].valid_for_addition(e2) {
+                                        if e2 >= e {
+                                            println!("With {}<->{} & {}<->{}, z{} is valid", d,swap_with, d2, swap_with2,e2);
+                                        }
+                                    } else {
+                                        if e2 > e {
+                                            println!("With {}<->{} & {}<->{}, z{} is NOT valid", d,swap_with, d2, swap_with2,e2);
+                                        }
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
