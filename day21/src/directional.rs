@@ -97,20 +97,20 @@ impl Key for DirectionalKey {
         }
     }
 
-    fn row(&self) -> usize {
-        match self {
-            Self::Activate => 0,
-            Self::Move(Direction::Up) => 0,
-            _ => 1
-        }
-    }
+    // fn row(&self) -> usize {
+    //     match self {
+    //         Self::Activate => 0,
+    //         Self::Move(Direction::Up) => 0,
+    //         _ => 1
+    //     }
+    // }
 
-    fn col(&self) -> usize {
-        match self {
-            Self::Move(Direction::Left) => 0,
-            Self::Move(Direction::Up) => 1,
-            Self::Move(Direction::Down) => 1,
-            _ => 2
-        }
-    }
+    // fn col(&self) -> usize {
+    //     match self {
+    //         Self::Move(Direction::Left) => 0,
+    //         Self::Move(Direction::Up) => 1,
+    //         Self::Move(Direction::Down) => 1,
+    //         _ => 2
+    //     }
+    // }
 }

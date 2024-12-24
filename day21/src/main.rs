@@ -25,7 +25,7 @@ fn main() {
                     FinalKeypad::new()
                 )
             );
-            let shortest = shortest_path_to_code(&keypad, &code);
+            let shortest = shortest_path_to_code(keypad, &code);
             let numeric_part = code.numeric_part();
             let complexity = numeric_part * shortest;
             println!("Code: {}, Shortest: {}, Complexity: {}", code, shortest, complexity);
@@ -37,16 +37,21 @@ fn main() {
     }
 }
 
-fn shortest_path_to_code<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, code: &Code<NumericKey>) -> usize {
+fn shortest_path_to_code<KP: Keypad<K>, K: Key>(start: RobotKeypad<KP, K>, code: &Code<NumericKey>) -> usize {
     let mut shortest = 0;
+    let mut state = start;
     for nk in &code.keys {
-        shortest += shortest_path_to_key(start, nk);
-        // activate?
+        let (final_state, length) = shortest_path_to_key(&state, nk);
+        state = final_state;
+        shortest += length;
+        shortest += 1; // press activate
     }
     shortest
 }
 
-fn shortest_path_to_key<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, key: &NumericKey) -> usize {
-    let result = bfs(start, |kp| kp.successors(), |kp| kp.final_key() == *key).expect("No solution");
-    result.len() - 1
+fn shortest_path_to_key<KP: Keypad<K>, K: Key>(start: &RobotKeypad<KP, K>, key: &NumericKey) -> (RobotKeypad<KP, K>, usize) {
+    let result = bfs(start, |kp| kp.successors(), |kp| kp.ready_for_final_key(key)).expect("No solution");
+    let length = result.len() - 1;
+    let final_state = result.into_iter().last().unwrap();
+    (final_state, length)
 }

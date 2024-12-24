@@ -10,8 +10,8 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
     fn key_below(&self) -> Option<Self>;
     fn key_left(&self) -> Option<Self>;
     fn key_right(&self) -> Option<Self>;
-    fn row(&self) -> usize;
-    fn col(&self) -> usize;
+    // fn row(&self) -> usize;
+    // fn col(&self) -> usize;
     
     // fn minimum_distance_to(&self, other: &Self) -> usize {
     //     self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
@@ -19,8 +19,11 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
 }
 
 pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
+    // return the next state if the press is valid (at all levels)
     fn try_next_state(&self, press: &DirectionalKey) -> Option<Self>;
-    fn final_key(&self) -> NumericKey;
+
+    // check that the final keypad's cursor is set to the correct key, and all preceeding ones are set to activate
+    fn ready_for_final_key(&self, key: &NumericKey) -> bool;
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
@@ -53,8 +56,8 @@ impl<KP: Keypad<K>, K: Key> Keypad<K> for RobotKeypad<KP, K> {
         }
     }
 
-    fn final_key(&self) -> NumericKey {
-        self.inner_keypad.final_key()
+    fn ready_for_final_key(&self, key: &NumericKey) -> bool {
+        self.current == DirectionalKey::Activate && self.inner_keypad.ready_for_final_key(key)
     }
 }
 
@@ -103,8 +106,8 @@ impl<K: Key> Keypad<K> for FinalKeypad {
         }
     }
 
-    fn final_key(&self) -> NumericKey {
-        self.current.clone()
+    fn ready_for_final_key(&self, key: &NumericKey) -> bool {
+        self.current == *key
     }
 }
 
