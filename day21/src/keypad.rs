@@ -65,15 +65,14 @@ impl<K: Key> Keypad<K> {
                     results.push(result);
                 }
             } else {
-                //TODO continue recursively by splitting in half
-                for mut result in Self::shortest_paths_to_key(start_key, &code[0]) {
-                    result.movements.push(DirectionalKey::Activate);
-                
-                    for mut sub_result in Self::shortest_paths_to_code_recursive(&result.current, &code[1..code.len()], cache) {
-                        let mut new_movements = result.movements.clone();
-                        new_movements.append(&mut sub_result.movements);
-                        sub_result.movements = new_movements;
-                        results.push(sub_result);
+                // continue recursively by splitting in half
+                let split = code.len() / 2;
+                for first_half_result in Self::shortest_paths_to_code_recursive(start_key, &code[0..split], cache) {
+                    for mut second_half_result in Self::shortest_paths_to_code_recursive(&first_half_result.current, &code[split..code.len()], cache) {
+                        let mut new_movements = first_half_result.movements.clone();
+                        new_movements.append(&mut second_half_result.movements);
+                        second_half_result.movements = new_movements;
+                        results.push(second_half_result);
                     }
                 }
                 // filter out results which are no longer the shortest (due to combining with upstream results)
