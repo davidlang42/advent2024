@@ -96,7 +96,9 @@ fn shortest_path_to_code<KP: Keypad<K>, K: Key>(start: RobotKeypad<KP, K>, code:
     let mut state = start;
     let mut cache = HashMap::new();
     for nk in &code.keys {
+        println!("Finding path to {:?}", nk);
         let (final_state, length) = shortest_path_to_key(&state, nk, &mut cache);
+        println!("Shortest: {}", length);
         state = final_state;
         shortest += length;
         shortest += 1; // press activate
