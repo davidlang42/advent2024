@@ -13,16 +13,20 @@ struct Logic {
     values: HashMap<Wire, bool>
 }
 
+#[derive(PartialEq)]
 struct Expression {
     operation: Operation,
     input_a: Input,
     input_b: Input
 }
 
+#[derive(PartialEq)]
 enum Input {
     Exp(Box<Expression>),
     X(usize),
-    Y(usize)
+    Y(usize),
+    Literal(bool),
+    Not(Box<Input>)
 }
 
 #[derive(Debug, Clone)]
@@ -32,7 +36,7 @@ struct Gate {
     input_b: Wire
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Operation {
     And,
     Or,
@@ -139,7 +143,51 @@ impl Logic {
                 input_a: self.expression_for(&calc.input_a),
                 input_b: self.expression_for(&calc.input_b)
             };
-            Input::Exp(Box::new(exp))
+            if exp.input_a == exp.input_b {
+                match exp.operation {
+                    Operation::And => exp.input_a,
+                    Operation::Or => exp.input_a,
+                    Operation::Xor => Input::Literal(false)
+                }
+            } else if let Input::Literal(a) = exp.input_a {
+                match exp.operation {
+                    Operation::And => if a {
+                        exp.input_b
+                    } else {
+                        Input::Literal(false)
+                    },
+                    Operation::Or => if a {
+                        Input::Literal(true)
+                    } else {
+                        exp.input_b
+                    },
+                    Operation::Xor => if a {
+                        Input::Not(Box::new(exp.input_b))
+                    } else {
+                        exp.input_b
+                    }
+                }
+            } else if let Input::Literal(b) = exp.input_b {
+                match exp.operation {
+                    Operation::And => if b {
+                        exp.input_a
+                    } else {
+                        Input::Literal(false)
+                    },
+                    Operation::Or => if b {
+                        Input::Literal(true)
+                    } else {
+                        exp.input_a
+                    },
+                    Operation::Xor => if b {
+                        Input::Not(Box::new(exp.input_a))
+                    } else {
+                        exp.input_a
+                    }
+                }
+            } else {
+                Input::Exp(Box::new(exp))
+            }
         }
     }
 }
@@ -181,7 +229,9 @@ impl Display for Input {
         match self {
             Self::X(x) => write!(f, "x{}", x),
             Self::Y(y) => write!(f, "y{}", y),
-            Self::Exp(e) => write!(f, "({})", e)
+            Self::Exp(e) => write!(f, "({})", e),
+            Self::Literal(_) => panic!(),
+            Self::Not(n) => write!(f, "!{}", n)
         }
     }
 }
