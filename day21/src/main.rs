@@ -67,7 +67,5 @@ fn robot_indirection_directional(code: &Code<DirectionalKey>, layers_of_indirect
 fn solve_for<K: Key>(code: &Code<K>, cache: &mut HashMap<(K, Vec<K>), Vec<Keypad<K>>>) -> Vec<Vec<DirectionalKey>> {
     let start = Keypad::<K>::new();
     let results = start.shortest_paths_to_code(&code, cache);
-    // filter out results which are no longer the shortest (due to combining with upstream results)
-    let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
-    results.into_iter().filter(|r| r.movements.len() == shortest).map(|r| r.movements).collect::<Vec<Vec<DirectionalKey>>>()
+    results.into_iter().map(|r| r.movements).collect::<Vec<Vec<DirectionalKey>>>()
 }

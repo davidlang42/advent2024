@@ -75,9 +75,6 @@ impl<K: Key> Keypad<K> {
                         results.push(second_half_result);
                     }
                 }
-                // filter out results which are no longer the shortest (due to combining with upstream results)
-                let shortest = results.iter().map(|r| r.movements.len()).min().unwrap();
-                results = results.into_iter().filter(|r| r.movements.len() == shortest).collect();
             }
             // save in cache
             cache.insert(cache_key, results.clone());
