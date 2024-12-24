@@ -4,7 +4,6 @@ use crate::directional::{Direction, DirectionalKey};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use pathfinding::prelude::astar_bag;
 
 pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
     fn from_char(c: char) -> Self;
@@ -16,13 +15,14 @@ pub trait Key : Sized + Default + Clone + Copy + Hash + Eq + PartialEq {
     fn row(&self) -> usize;
     fn col(&self) -> usize;
     
-    fn minimum_distance_to(&self, other: &Self) -> usize {
-        self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
-    }
+    // fn minimum_distance_to(&self, other: &Self) -> usize {
+    //     self.row().abs_diff(other.row()) + self.col().abs_diff(other.col())
+    // }
 }
 
-pub trait Keypad<K: Key> {
+pub trait Keypad<K: Key> : Clone + Hash + Eq + PartialEq {
     fn press(&mut self, directional_key: &DirectionalKey);
+    fn final_key(&self) -> NumericKey;
 }
 
 #[derive(Clone, Hash, Eq, PartialEq, Debug)]
@@ -46,6 +46,10 @@ impl<KP: Keypad<K>, K: Key> Keypad<K> for RobotKeypad<KP, K> {
             DirectionalKey::Activate => self.inner_keypad.press(&self.current)
         }
     }
+
+    fn final_key(&self) -> NumericKey {
+        self.inner_keypad.final_key()
+    }
 }
 
 impl<KP: Keypad<K>, K: Key> RobotKeypad<KP, K> {
@@ -57,37 +61,36 @@ impl<KP: Keypad<K>, K: Key> RobotKeypad<KP, K> {
         }
     }
 
-    pub fn shortest_path_to_code(&mut self, code: &Code<NumericKey>) -> usize {
-        let mut shortest = 0;
-        for nk in &code.keys {
-            shortest += self.shortest_path_to_key(nk);
-            // activate?
-        }
-        shortest
-    }
-
-    fn shortest_path_to_key(&mut self, key: &NumericKey) -> usize {
-
-    }
-
-    fn valid_directions(&self) -> Vec<Direction> {
-        let mut v = Vec::new();
+    fn valid_presses(&self) -> Vec<DirectionalKey> {
+        let mut v = vec![DirectionalKey::Activate];
         if !self.current.key_above().is_none() {
-            v.push(Direction::Up)
+            v.push(DirectionalKey::Move(Direction::Up));
         }
         if !self.current.key_below().is_none() {
-            v.push(Direction::Down)
+            v.push(DirectionalKey::Move(Direction::Down));
         }
         if !self.current.key_left().is_none() {
-            v.push(Direction::Left)
+            v.push(DirectionalKey::Move(Direction::Left));
         }
         if !self.current.key_right().is_none() {
-            v.push(Direction::Right)
+            v.push(DirectionalKey::Move(Direction::Right));
+        }
+        v
+    }
+
+    pub fn successors(&self) -> Vec<Self> {
+        let mut v = Vec::new();
+        for dk in self.valid_presses() {
+            let mut clone = self.clone();
+            println!("Pressing {:?}", dk);
+            clone.press(&dk);
+            v.push(clone);
         }
         v
     }
 }
 
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct FinalKeypad {
     pub current: NumericKey
 }
@@ -106,6 +109,10 @@ impl<K: Key> Keypad<K> for FinalKeypad {
             DirectionalKey::Activate => { }
         }
     }
+
+    fn final_key(&self) -> NumericKey {
+        self.current.clone()
+    }
 }
 
 impl FinalKeypad {
@@ -114,14 +121,4 @@ impl FinalKeypad {
             current: NumericKey::default()
         }
     }
-
-    // fn successors(&self) -> Vec<(Self, usize)> {
-    //     let mut v = Vec::new();
-    //     for direction in self.valid_moves() {
-    //         let mut clone = self.clone();
-    //         clone.move_current(&direction);
-    //         v.push((clone, 1));
-    //     }
-    //     v
-    // }
 }
