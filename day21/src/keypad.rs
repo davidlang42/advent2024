@@ -87,6 +87,7 @@ impl<K: Key> Keypad<K> {
             current: *start_key,
             movements: Vec::new()
         };
+        //TODO if filtering was unnessesary, do we really need all solutions?
         let (results, _) = astar_bag(&start, |kp| kp.successors(), |kp| kp.current.minimum_distance_to(key), |kp| kp.current == *key).expect("No solution");
         results.into_iter().map(|r| r.into_iter().last().unwrap()).collect()
     }
